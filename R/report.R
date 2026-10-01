@@ -1,10 +1,6 @@
-# Formatting helpers, table builders and writers for publication-ready output
-# (markdown + Word). Moved here almost unchanged from the old model_results.r
-# (its lines 21-140 and 339-403) because this is formatting, not model
-# fitting (doesn't belong in models.R) and not orchestration (doesn't belong
-# in a script). What table goes in which document, with which title and
-# legend, is editorial content and stays in the analysis script that calls
-# these functions (11_article_tableaux.R).
+# Mise en forme, construction des tableaux et ecriture des sorties
+# publiables (markdown + Word). Le contenu editorial (quel tableau, avec quel
+# titre et quelle legende) reste dans le script qui appelle ces fonctions.
 
 library(officer)
 library(flextable)
@@ -13,10 +9,9 @@ library(performance)  # r2()
 library(DHARMa)       # testUniformity/testDispersion/testOutliers
 
 
-#### FORMATTING HELPERS ####
+#### MISE EN FORME ####
 
-# p-values: below 0.001 the exact value carries no information, so it is
-# reported as a threshold, as is standard in the literature.
+# p-values: sous 0.001 la valeur exacte n'apporte rien, on rapporte le seuil.
 fmt_p <- function(p) {
   out <- character(length(p))
   for (i in seq_along(p)) {
@@ -31,9 +26,9 @@ fmt_p <- function(p) {
   out
 }
 
-# numbers: 3 significant digits, never scientific notation. Counts in the
-# thousands are rounded and thousand-separated instead, otherwise the pollen
-# abundances come out as 3.45e+04 and become unreadable.
+# Nombres: 3 chiffres significatifs, jamais de notation scientifique. Les
+# comptages au-dela du millier sont arrondis et separes par des espaces, sinon
+# les abondances polliniques sortent en 3.45e+04.
 fmt_num <- function(x, digits = 3) {
   out <- character(length(x))
   for (i in seq_along(x)) {
@@ -48,7 +43,7 @@ fmt_num <- function(x, digits = 3) {
   out
 }
 
-# integers (degrees of freedom, k, number of stations)
+# Entiers (degres de liberte, k, nombre de stations).
 fmt_int <- function(x) {
   out <- character(length(x))
   for (i in seq_along(x)) {
@@ -57,52 +52,37 @@ fmt_int <- function(x) {
   out
 }
 
-# R2 marginal / conditional of a glmmTMB model, as two formatted strings, plus
-# the R2 type actually used. r2() errors outright on glmmTMB models with no
-# random effects at all (e.g. the location + period fixed-effects models in
-# 14_article_effets_fixes.R) - same McFadden pseudo-R2 fallback as valider()
-# (R/models.R), so the two stay consistent. McFadden is a single value with
-# no marginal/conditional split, so it is only put in the marginal slot.
+# R2 marginal et conditionnel d'un modele glmmTMB, en chaines formatees, plus
+# le type de R2 reellement utilise. Meme repli sur McFadden que valider()
+# (R/models.R) quand r2() echoue; McFadden n'a pas de volet conditionnel.
 r2_vals <- function(mod) {
   r <- try(r2(mod), silent = TRUE)
   if (!inherits(r, "try-error") && !is.null(r)) {
     return(c(fmt_num(as.numeric(r$R2_marginal)), fmt_num(as.numeric(r$R2_conditional)), "R2"))
   }
-  # r2_mcfadden_local() (R/models.R), never performance::r2_mcfadden(): the
-  # latter refits the null model by re-evaluating the model's stored call, so
-  # for the per-taxon models fit in a loop it used the last taxon's data for
-  # every null and produced meaningless (sometimes negative) values.
   rm <- try(r2_mcfadden_local(mod), silent = TRUE)
   if (inherits(rm, "try-error") || is.null(rm) || !is.finite(rm)) return(c("", "", ""))
   c(fmt_num(as.numeric(rm[1])), "", "McFadden")
 }
 
 
-#### TABLE BUILDERS ####
+#### CONSTRUCTION DES TABLEAUX ####
 
-# Anova type II of a glmmTMB model + the R2 of that model, on one block of rows.
-# The model label and the R2 are only written on the first row so that a table
-# stacking several models stays readable.
+# Anova type II d'un modele glmmTMB + son R2, sur un bloc de lignes.
+# L'etiquette du modele et le R2 ne sont ecrits que sur la 1re ligne, pour
+# qu'un tableau empilant plusieurs modeles reste lisible.
 tab_anova <- function(mod, etiquette, garder_p_num = FALSE) {
   a <- as.data.frame(Anova(mod, type = "II"))
   r <- r2_vals(mod)
   n <- nrow(a)
-  # N obs: for count models (abundance), the true-zero pattern
-  # (completer_zeros(), R/matrices.R) keeps "taxon absent from a collected
-  # sample" as a valid row with count = 0, so nobs(mod) alone would overstate
-  # how many samples actually had a non-zero count for this response - report
-  # the non-zero count instead. For gaussian models (Shannon diversity), 0 is
-  # a real diversity value (a sample with a single taxon), not a placeholder,
-  # so nobs(mod) is reported as-is.
-  # Response extracted via model.response(model.frame(mod)), NOT
-  # insight::get_response(mod): the latter re-evaluates the model's stored
-  # call against the environment it was fit in, so for models fit in a loop
-  # that reuses one variable name across iterations (fit_taxon_models() in
-  # 14_article_effets_fixes.R uses `dat_t` for every taxon), it silently
-  # returns the LAST iteration's data for every model - confirmed with a
-  # 3-taxon repro where get_response() returned identical values for all
-  # three models. model.frame(mod) uses glmmTMB's own stored data snapshot,
-  # not a re-evaluated call, so it stays correct per model.
+  # N obs: pour les modeles de comptage, les vrais zeros (completer_zeros(),
+  # R/matrices.R) sont des lignes valides, donc nobs(mod) surestimerait le
+  # nombre d'echantillons ayant reellement du pollen de ce taxon; on rapporte
+  # les comptages non nuls. Pour les modeles gaussiens (Shannon), 0 est une
+  # vraie valeur de diversite et nobs(mod) est rapporte tel quel.
+  # La reponse passe par model.response(model.frame(mod)) et non
+  # insight::get_response(), qui reevalue l'appel stocke et renvoie donc les
+  # donnees de la derniere iteration pour des modeles ajustes en boucle.
   n_obs <- if (family(mod)$family == "gaussian") {
     nobs(mod)
   } else {
@@ -121,22 +101,18 @@ tab_anova <- function(mod, etiquette, garder_p_num = FALSE) {
     stringsAsFactors = FALSE)
   names(out) <- c("Model", "Term", "Chi2", "df", "p", "N obs",
                   "R2 marginal", "R2 conditional", "R2 type")
-  # raw, unrounded p-value alongside the formatted "p" column -- needed by
-  # callers that adjust for multiple testing across many stacked tab_anova()
-  # rows (e.g. one model per taxon) after fmt_p() has already turned "p" into
-  # a display string. FALSE by default so every other caller keeps today's
-  # exact column set.
+  # p-value brute a cote de la colonne "p" deja formatee, pour les appelants
+  # qui corrigent pour tests multiples sur plusieurs tab_anova() empiles.
   if (garder_p_num) out$p_num <- a[["Pr(>Chisq)"]]
   out
 }
 
-# emmeans + Tukey letters of one abundance model. Groups (stations by default,
-# but any emmeans grouping factor, e.g. period) sharing a letter are not
-# significantly different. groupe_col must be a column of as.data.frame(cld_obj),
-# i.e. the term the emmeans() call was run over.
+# emmeans + lettres de Tukey d'un modele. Les groupes partageant une lettre ne
+# different pas significativement. `groupe_col` doit etre une colonne de
+# as.data.frame(cld_obj), soit le terme sur lequel emmeans() a tourne.
 tab_cld <- function(cld_obj, an, groupe_col = "location", nom_groupe = "Station") {
   d <- as.data.frame(cld_obj)
-  # the column names depend on the model family and on type = "response"
+  # les noms de colonnes dependent de la famille du modele et de type = "response"
   est <- if ("response"  %in% names(d)) d$response  else d$emmean
   lcl <- if ("asymp.LCL" %in% names(d)) d$asymp.LCL else d$lower.CL
   ucl <- if ("asymp.UCL" %in% names(d)) d$asymp.UCL else d$upper.CL
@@ -154,7 +130,7 @@ tab_cld <- function(cld_obj, an, groupe_col = "location", nom_groupe = "Station"
   out
 }
 
-# adonis2 output of one year
+# Sortie adonis2 d'une annee.
 tab_permanova <- function(res, an) {
   d <- as.data.frame(res)
   out <- data.frame(
@@ -170,8 +146,7 @@ tab_permanova <- function(res, an) {
   out
 }
 
-# DHARMa diagnostics of one model, as a single row. plot = FALSE keeps the
-# tests silent; only the p-values are reported.
+# Diagnostics DHARMa d'un modele, sur une seule ligne.
 tab_diag <- function(res, etiquette) {
   data.frame(
     Model      = etiquette,
@@ -181,10 +156,8 @@ tab_diag <- function(res, etiquette) {
     stringsAsFactors = FALSE)
 }
 
-# Placeholder row for a tab_anova()-shaped table, in place of a model/taxon/
-# period that could not be fit or whose Anova() failed - keeps the row visible
-# with a Note instead of silently dropping it. Used by 11_article_tableaux.R
-# (per-taxon models) and 13_article_periodes_tableaux.R (per-period models).
+# Ligne de remplacement, au format de tab_anova(), pour un modele qui n'a pas pu
+# etre ajuste: la ligne reste visible avec une note au lieu d'etre supprimee.
 note_row <- function(etiquette, note) {
   data.frame(Model = etiquette, Term = "", Chi2 = "", df = "", p = "",
              `N obs` = "", `R2 marginal` = "", `R2 conditional` = "", `R2 type` = "",
@@ -192,9 +165,9 @@ note_row <- function(etiquette, note) {
 }
 
 
-#### WRITERS ####
+#### ECRITURE ####
 
-# markdown: one section per table, pipe syntax
+# markdown: une section par tableau, syntaxe pipe
 ecrire_md <- function(tables, figures, fichier) {
 
   cat("# Model results - spatial distribution of pollen in Montreal\n\n",
@@ -204,15 +177,6 @@ ecrire_md <- function(tables, figures, fichier) {
   for (t in tables) {
     cat("\n## ", t$titre, "\n\n", sep = "", file = fichier, append = TRUE)
     cat(t$legende, "\n\n", sep = "", file = fichier, append = TRUE)
-
-    # raw preformatted text (e.g. capture.output(summary(mod))) instead of a
-    # table: some model summaries don't fit the tab_*() column shapes, so they
-    # are kept verbatim in a fenced code block rather than forced into a table
-    if (!is.null(t$texte)) {
-      cat("```\n", paste(t$texte, collapse = "\n"), "\n```\n\n",
-          sep = "", file = fichier, append = TRUE)
-      next
-    }
 
     d <- t$df
     cat("| ", paste(names(d), collapse = " | "), " |\n",
@@ -236,7 +200,7 @@ ecrire_md <- function(tables, figures, fichier) {
   }
 }
 
-# Word: officer assembles the document, flextable formats each table
+# Word: officer assemble le document, flextable met en forme chaque tableau
 ecrire_docx <- function(tables, figures, fichier) {
 
   doc <- read_docx()
@@ -249,18 +213,6 @@ ecrire_docx <- function(tables, figures, fichier) {
     doc <- body_add_par(doc, t$titre, style = "heading 2")
     doc <- body_add_par(doc, t$legende, style = "Normal")
 
-    # raw preformatted text: one monospace paragraph per line, so alignment
-    # (e.g. glmmTMB's summary() coefficient columns) survives instead of being
-    # collapsed by a table cell
-    if (!is.null(t$texte)) {
-      police_brute <- fp_text(font.family = "Courier New", font.size = 8)
-      for (ligne in t$texte) {
-        doc <- body_add_fpar(doc, fpar(ftext(if (ligne == "") " " else ligne, police_brute)))
-      }
-      doc <- body_add_par(doc, "", style = "Normal")
-      next
-    }
-
     ft <- flextable(t$df)
     ft <- theme_booktabs(ft)
     ft <- fontsize(ft, size = 9, part = "all")
@@ -271,7 +223,7 @@ ecrire_docx <- function(tables, figures, fichier) {
   }
 
   if (!is.null(figures)) {
-    # figures are delivered as separate 300 dpi files; the document lists them
+    # les figures sont livrees en fichiers separes a 300 dpi; le document les liste
     doc <- body_add_par(doc, "Figures", style = "heading 2")
     for (i in seq_len(nrow(figures))) {
       doc <- body_add_par(doc, paste0("Figure ", i, ". ", figures$legende[i],

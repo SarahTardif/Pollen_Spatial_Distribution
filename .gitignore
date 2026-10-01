@@ -9,3 +9,6 @@ Outputs/
 .Rhistory
 .RData
 .Ruserdata
+
+# Sous-produit des graphiques base R lances via Rscript
+Rplots.pdf

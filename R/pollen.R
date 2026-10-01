@@ -1,13 +1,10 @@
-# Pollen data loading and the article's true-zero station x period x year x
-# taxon grid (originally Pipeline_article.r:41-68). OTHER is kept here — it is
-# excluded later, wherever composition (not total load) is involved, by
-# whichever script needs that (Pred_Genus != "OTHER" is a one-line filter, not
-# worth a function of its own).
+# Chargement des donnees polliniques et grille station x periode x annee x
+# taxon avec les vrais zeros. OTHER est conserve ici; il est exclu plus loin,
+# dans les scripts, partout ou il s'agit de composition et non de charge totale.
 
-# Reads and stacks the cleaned yearly CSVs (as written by 01_preparer_pollen.R
-# / the old read_clean_data.r), coercing the columns used as model factors to
-# character so downstream droplevels()/factor() calls behave the same
-# regardless of how read.csv guessed their type.
+# Lit et empile les CSV annuels nettoyes (ecrits par 01_preparer_pollen.R). Les
+# colonnes utilisees comme facteurs sont forcees en caractere pour que les
+# droplevels()/factor() en aval se comportent toujours pareil.
 charger_pollen <- function(annees, dir = DIR_DATA_POLLEN) {
   data_pollen <- NULL
   for (an in annees) {
@@ -20,19 +17,17 @@ charger_pollen <- function(annees, dir = DIR_DATA_POLLEN) {
   data_pollen
 }
 
-# The samples that actually exist, i.e. the reference grid for completer_zeros().
-# The sampling design is incomplete (25 stations x 7 periods x 2 years = 350
-# possible combinations, fewer actually collected): without this, "taxon
-# absent from a sample" and "sample never collected" would be confounded.
+# Les echantillons qui existent reellement, soit la grille de reference de
+# completer_zeros(). Le plan d'echantillonnage est incomplet (25 stations x 7
+# periodes x 2 annees = 350 combinaisons possibles, moins collectees): sans
+# cette table, "taxon absent" et "echantillon non collecte" seraient confondus.
 echantillons <- function(df, cols = c("location", "period", "year")) {
   ech <- unique(df[, cols])
   rownames(ech) <- NULL
   ech
 }
 
-# Counts per station x period x year x taxon, true zeros included. table()
-# counts the grains actually observed; completer_zeros() puts back the zeros
-# for taxa absent from a collected sample.
+# Comptages par station x periode x annee x taxon, vrais zeros inclus.
 comptages_pollen <- function(data_pollen, ech) {
   ab_counts <- as.data.frame(table(location   = data_pollen$location,
                                    period     = data_pollen$period,
@@ -50,7 +45,7 @@ comptages_pollen <- function(data_pollen, ech) {
                   colonne_valeur = "count")
 }
 
-# Total pollen load per sample (all taxa summed, OTHER included).
+# Charge pollinique totale par echantillon (tous taxons, OTHER inclus).
 abondance_totale <- function(ab_taxon) {
   aggregate(count ~ location + period + year, data = ab_taxon, FUN = sum)
 }

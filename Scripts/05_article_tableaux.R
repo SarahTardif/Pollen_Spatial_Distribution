@@ -1,29 +1,28 @@
-# Formats the models fitted in 10_article.R into publication-ready tables.
-# Reads the objects left in the environment by the pipeline and writes the same
-# set of tables to a markdown file and to a Word document.
-# Run 10_article.R first, or let the guard below do it.
-# ex-model_results.r. Formatting helpers, table builders and writers now live
-# in R/report.R; what goes in which table (titles, legends) stays here as
-# editorial content.
+# Met en forme les modeles ajustes par 04_article_analyses.R en tableaux
+# publiables. Lit les objets laisses dans l'environnement par la pipeline et
+# ecrit le meme jeu de tableaux en markdown et en Word. Lancer 04 d'abord, ou
+# laisser faire la garde ci-dessous.
+# Les fonctions de mise en forme et d'ecriture sont dans R/report.R; ce qui va
+# dans quel tableau (titres, legendes) reste ici, c'est du contenu editorial.
 
 source("R/init.R")
-if (!exists("mod_ab_2022_noOTHER")) source("scripts/10_article.R")
+if (!exists("mod_ab_2022_noOTHER")) source("Scripts/04_article_analyses.R")
 
 file_md   <- file.path(DIR_OUT_ARTICLE, "model_results.md")
 file_docx <- file.path(DIR_OUT_ARTICLE, "model_results.docx")
 
 
-#### BUILDING THE TABLES ####
+#### CONSTRUCTION DES TABLEAUX ####
 
-# Every table is added to this list once, and both writers below consume it, so
-# the markdown and the Word document can never drift apart.
+# Chaque tableau est ajoute une seule fois a cette liste, que les deux
+# ecrivains consomment, pour que le markdown et le Word ne puissent pas diverger.
 tables <- list()
 
 ajouter <- function(titre, legende, df) {
   tables[[length(tables) + 1]] <<- list(titre = titre, legende = legende, df = df)
 }
 
-## Table 1 - total abundance, location + period both fixed, OTHER excluded
+## Table 1 - abondance totale, location + period fixes, OTHER exclu
 ajouter(
   "Table 1. Effect of location and period on total pollen abundance, OTHER excluded",
   paste("Negative binomial models (glmmTMB, nbinom2), one per year, with",
@@ -33,7 +32,7 @@ ajouter(
   rbind(tab_anova(mod_ab_2022_noOTHER, "2022"),
         tab_anova(mod_ab_2023_noOTHER, "2023")))
 
-## Table 2 - estimated means per station
+## Table 2 - moyennes estimees par station
 ajouter(
   "Table 2. Estimated mean abundance per station",
   paste("Estimated marginal means on the response scale, with Tukey-adjusted",
@@ -41,14 +40,10 @@ ajouter(
   rbind(tab_cld(cld_loc_2022_noOTHER, "2022"),
         tab_cld(cld_loc_2023_noOTHER, "2023")))
 
-## Table 3 - taxon-specific abundance, one model per taxon (location + period
-## fixed): each taxon has its own count ~ location + period model, fit only on
-## that taxon's rows, all taxa (not restricted to top10). Mirrors
-## 15_article_effets_fixes_tableaux.R's Table 16. Taxa that could not be fit
-## for a given year (too few levels or all-zero counts) or whose Anova failed
-## to converge are listed with a Note instead of a result, not silently
-## dropped. note_row() itself lives in R/report.R (shared with
-## 13_article_periodes_tableaux.R's per-period table).
+## Table 3 - abondance par taxon, un modele par taxon (location + period
+## fixes). Les taxons qui n'ont pu etre ajustes pour une annee (trop peu de
+## niveaux, comptages tous nuls) ou dont l'Anova n'a pas converge sont listes
+## avec une note plutot que supprimes silencieusement.
 
 anova_abrel_taxon <- list()
 for (an in annees) {
@@ -76,11 +71,9 @@ for (an in annees) {
 if (length(anova_abrel_taxon) > 0) {
   tab_abrel_taxon <- do.call(rbind, anova_abrel_taxon)
 
-  ## Benjamini-Hochberg correction for multiple testing across taxa: one
-  ## family per year, location and period p-values pooled together (~2 terms
-  ## x ~30 taxa), 2022 and 2023 never mixed (years are always modelled
-  ## separately in this pipeline). No multiple-testing correction existed
-  ## anywhere in this codebase before this table.
+  ## Correction de Benjamini-Hochberg pour tests multiples entre taxons: une
+  ## famille par annee, p-values de location et period regroupees, 2022 et
+  ## 2023 jamais melangees.
   tab_abrel_taxon$p_adj <- NA_real_
   for (an in annees) {
     idx <- tab_abrel_taxon$Year == an & !is.na(tab_abrel_taxon$p_num)
@@ -115,7 +108,7 @@ ajouter(
         "succession has been removed."),
   do.call(rbind, lapply(annees, function(an) tab_permanova(perm_comp[[an]], an))))
 
-## Table 5 - PCoA axes
+## Table 5 - axes de la PCoA
 pct_tab <- do.call(rbind, pct_list)
 ajouter(
   "Table 5. PCoA of the annual composition per station",
@@ -159,7 +152,7 @@ if (!is.null(envfit_tab)) {
     envfit_tab)
 }
 
-## Table 7 - Shannon diversity
+## Table 7 - diversite de Shannon
 ajouter(
   "Table 7. Effect of the station on pollen diversity",
   paste("Gaussian mixed models (glmmTMB), one per year:",
@@ -168,7 +161,7 @@ ajouter(
   rbind(tab_anova(mod_compdiv_2022, "2022"),
         tab_anova(mod_compdiv_2023, "2023")))
 
-## Table 8 - PAM clustering
+## Table 8 - partitionnement PAM
 pam_list <- list("2022" = pam_2022, "2023" = pam_2023)
 pam_tab  <- NULL
 for (an in annees) {
@@ -189,13 +182,13 @@ ajouter(
         "0.25 indicates that no real group structure exists."),
   pam_tab)
 
-## Table 9 - conclusion of the clustering
-# k = 3 is added below the retained k for every year, even when its silhouette
-# stays under 0.25, since it is the number of groups sometimes suggested by
-# eye on the PCoA (fig2) and worth showing next to the formal answer. A third
-# block answers a different question again: reduced to a single station (k = 1,
-# not part of the PAM sweep), which one is closest to the average composition ?
-# Silhouette/Structure do not apply to a lone station, hence the "-".
+## Table 9 - conclusion du partitionnement.
+# k = 3 est ajoute sous le k retenu pour chaque annee, meme quand sa silhouette
+# reste sous 0.25, car c'est le nombre de groupes parfois suggere a l'oeil sur
+# la PCoA (fig2). Un 3e bloc repond a une autre question: reduit a une seule
+# station (k = 1, hors du balayage PAM), laquelle est la plus proche de la
+# composition moyenne ? Silhouette et structure ne s'appliquent pas a une
+# station seule, d'ou les "-".
 tab9_retenu <- do.call(rbind, lapply(annees, function(an) {
   p <- pam_list[[an]]
   data.frame(
@@ -244,7 +237,7 @@ names(tables[[length(tables)]]$df) <- c("Year", "k", "Silhouette width",
                                         "Interpretation", "Medoid stations",
                                         "Selection", "Distance to average")
 
-## Table 10 - Mantel tests
+## Table 10 - tests de Mantel
 ajouter(
   "Table 10. Mantel tests of distance decay",
   paste("Correlation between the geographic distance matrix (EPSG 32188,",
@@ -255,10 +248,9 @@ ajouter(
              p          = fmt_p(mantel_res$p_value),
              stringsAsFactors = FALSE))
 
-## Table 11 - estimated means per period
-# Period's Anova is already in Table 1 (same two-way location + period
-# model); this table only adds the period Tukey letters, same model as
-# Table 2's station letters.
+## Table 11 - moyennes estimees par periode.
+# L'Anova de period est deja au tableau 1 (meme modele a deux facteurs); ce
+# tableau n'ajoute que les lettres de Tukey des periodes.
 ajouter(
   "Table 11. Estimated mean abundance per period",
   paste("Estimated marginal means on the response scale, with Tukey-adjusted",
@@ -266,12 +258,9 @@ ajouter(
   rbind(tab_cld(cld_per_2022_noOTHER, "2022", groupe_col = "period", nom_groupe = "Period"),
         tab_cld(cld_per_2023_noOTHER, "2023", groupe_col = "period", nom_groupe = "Period")))
 
-## Table S1 - model diagnostics
-# No per-taxon relative-abundance row here: Section 1 replaced the single
-# merged interaction model with one count ~ location + period model per
-# taxon (fit_taxon_models(), 10_article.R), none of which goes through
-# valider(), so there is no single DHARMa object left to report for it
-# (same reasoning as 15_article_effets_fixes_tableaux.R's Table S1).
+## Table S1 - diagnostics des modeles.
+# Pas de ligne pour les modeles par taxon: aucun d'eux ne passe par valider(),
+# donc il n'y a pas d'objet DHARMa unique a rapporter pour eux.
 ajouter(
   "Table S1. Model diagnostics",
   paste("DHARMa tests on the scaled residuals (1000 simulations). A p-value",
@@ -283,7 +272,7 @@ ajouter(
 names(tables[[length(tables)]]$df) <- c("Model", "Uniformity (KS)",
                                         "Dispersion", "Outliers")
 
-## Table S2 - estimated mean pollen diversity (Shannon) per station
+## Table S2 - diversite moyenne estimee (Shannon) par station
 ajouter(
   "Table S2. Estimated mean pollen diversity (Shannon) per station",
   paste("Estimated marginal means on the response scale, with Tukey-adjusted",
@@ -294,8 +283,9 @@ ajouter(
 
 #### FIGURES ####
 
-# The figures themselves are written by 10_article.R at 300 dpi. They are
-# only listed here so the document states which file goes with which figure.
+# Les figures elles-memes sont ecrites par 04_article_analyses.R a 300 dpi.
+# Elles ne sont listees ici que pour que le document indique quel fichier va
+# avec quelle figure.
 figures <- data.frame(
   fichier = c("fig1_abondance_totale_par_station.png",
               "fig1b_abondance_totale_par_period.png",
@@ -322,7 +312,7 @@ figures <- data.frame(
   stringsAsFactors = FALSE)
 
 
-#### WRITE ####
+#### ECRITURE ####
 
 ecrire_md(tables, figures, file_md)
 ecrire_docx(tables, figures, file_docx)
