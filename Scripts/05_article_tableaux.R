@@ -185,7 +185,7 @@ ajouter(
 ## Table 9 - conclusion of the partitioning.
 # k = 3 is added below the retained k for every year, even when its silhouette
 # stays under 0.25, since it is the number of groups sometimes suggested by eye
-# on the PCoA (fig2). A third block answers a different question again: reduced
+# on the PCoA (fig_pcoa_composition). A third block answers a different question again: reduced
 # to a single station (k = 1, not part of the PAM sweep), which one is closest
 # to the average composition ? Silhouette and structure do not apply to a lone
 # station, hence the "-".
@@ -287,17 +287,17 @@ ajouter(
 # are only listed here so the document states which file goes with which
 # figure.
 figures <- data.frame(
-  fichier = c("fig1_abondance_totale_par_station.png",
-              "fig1b_abondance_totale_par_period.png",
-              "fig1c_heatmap_abondance_station_periode.png",
-              "fig1d_abondance_par_taxon_station_2022.png",
-              "fig1d_abondance_par_taxon_station_2023.png",
-              "fig2_pcoa_composition_2022.png",
-              "fig2_pcoa_composition_2023.png",
-              "fig3_shannon_par_station.png",
-              "fig4_composition_par_station.png",
-              "fig5_silhouette_pam.png",
-              "fig6_carte_groupes_stations.png"),
+  fichier = c("fig_abondance_totale_par_station.png",
+              "fig_abondance_totale_par_period.png",
+              "fig_heatmap_abondance_station_periode.png",
+              "fig_abondance_par_taxon_station_2022.png",
+              "fig_abondance_par_taxon_station_2023.png",
+              "fig_pcoa_composition_2022.png",
+              "fig_pcoa_composition_2023.png",
+              "fig_shannon_par_station.png",
+              "fig_composition_par_station.png",
+              "fig_silhouette_pam.png",
+              "fig_carte_groupes_stations.png"),
   legende = c("Total pollen abundance per sample and per station, OTHER excluded, log10 scale, by year. See Table 2 for Tukey-adjusted comparisons between stations.",
               "Total pollen abundance per sample and per period, OTHER excluded, log10 scale, by year. See Table 11 for Tukey-adjusted comparisons between periods.",
               "Total pollen abundance per station x period, OTHER excluded, log10 scale, by year, coloured by deviation from that period's own median (red = above, blue = below). Descriptive complement to Tables 2/11: no model is fit separately per period, since a single location x year value per period leaves no replication.",

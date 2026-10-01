@@ -22,7 +22,7 @@ data_pollen <- charger_pollen(c(2022, 2023))
 locations   <- charger_stations()
 
 # canopy cover class per station, same 4 classes and colours as the station
-# map (script 02) -- used to colour the PCoA points (fig2)
+# map (script 02) -- used to colour the PCoA points (fig_pcoa_composition)
 gradients <- charger_gradients()
 locations$canopy_classe <- classer_canopy(
   gradients$Canopy.cover....[match(locations$trap, gradients$Plot)])
@@ -131,13 +131,13 @@ heatmap_ab_station_period <- heatmap_station_periode(ab_tot_noOTHER,
                                                       xlab = "Period", ylab = "Station",
                                                       legend_lab = "Deviation from period median\n(log10)")
 
-sauver_figure("fig1c_heatmap_abondance_station_periode.png", heatmap_ab_station_period,
+sauver_figure("fig_heatmap_abondance_station_periode.png", heatmap_ab_station_period,
               largeur = 8, hauteur = 10)
 
 
 ## one count ~ location + period model per taxon (all taxa, OTHER excluded).
 ## Their omnibus tests are reported in Table 3 by script 05; those tests say
-## whether a taxon's abundance varies between stations but not how, hence fig1d
+## whether a taxon's abundance varies between stations but not how, hence fig_abondance_par_taxon_station
 ## below, which shows the per-station distribution taxon by taxon.
 fit_taxon_models <- function(dat) {
 
@@ -192,13 +192,13 @@ mod_abrel_taxon_2023  <- out_abrel_taxon_2023$models
 skip_abrel_taxon_2023 <- out_abrel_taxon_2023$skipped
 
 
-## taxa shown on fig1d: the 12 most abundant of each year. All ~33 taxa x 25
+## taxa shown on fig_abondance_par_taxon_station: the 12 most abundant of each year. All ~33 taxa x 25
 ## stations on one figure would be unreadable.
 top12_list <- list("2022" = top_taxons(mat_2022, n = 12),
                    "2023" = top_taxons(mat_2023, n = 12))
 
 
-## fig1d: one panel per taxon, horizontal station boxplots with the individual
+## fig_abondance_par_taxon_station: one panel per taxon, horizontal station boxplots with the individual
 ## samples as points. Raw counts, i.e. the distribution each per-taxon model
 ## was fit on.
 ## scales = "free_x" is required: taxon counts span several orders of
@@ -247,14 +247,14 @@ for (an in annees) {
   fig_taxon_station <- boxplot_taxon_station(dat_an, taxons_fig, locations$trap,
                                              titre = paste("Pollen abundance per station and taxon,", an))
 
-  sauver_figure(paste0("fig1d_abondance_par_taxon_station_", an, ".png"), fig_taxon_station,
+  sauver_figure(paste0("fig_abondance_par_taxon_station_", an, ".png"), fig_taxon_station,
                 largeur = 11,
                 hauteur = min(2.4 * ceiling(length(taxons_fig) / 3) + 1, 16))
 }
 
 
 ## Station boxplot with the 7 period points on top and a global mean line per
-## year panel (fig1 and fig3).
+## year panel (fig_abondance_totale_par_station and fig_shannon_par_station).
 # The mean is pre-aggregated (one row per facet level) rather than left to
 # stat_summary()'s implicit grouping, which with a discrete x summarised per x
 # category (one line per station instead of one per panel).
@@ -297,7 +297,7 @@ box_ab_station <- boxplot_station_periodes(ab_tot_noOTHER, x = "location", y = "
                                   titre = "",
                                   facet = "year", log10 = TRUE, ordre = "alpha")
 
-sauver_figure("fig1_abondance_totale_par_station.png", box_ab_station, largeur = 9, hauteur = 8)
+sauver_figure("fig_abondance_totale_par_station.png", box_ab_station, largeur = 9, hauteur = 8)
 
 
 ## boxplot of the total abundance per period
@@ -306,7 +306,7 @@ box_ab_period <- boxplot_station_periodes(ab_tot_noOTHER, x = "period", y = "cou
                                  titre = "",
                                  facet = "year", log10 = TRUE, ordre = "alpha")
 
-sauver_figure("fig1b_abondance_totale_par_period.png", box_ab_period, largeur = 9, hauteur = 8)
+sauver_figure("fig_abondance_totale_par_period.png", box_ab_period, largeur = 9, hauteur = 8)
 
 
 #### 2. SPATIAL VARIATION IN COMPOSITION ####
@@ -350,7 +350,7 @@ pcoa_list    <- list()
 envfit_list  <- list()   # each year's ef_df, kept for script 05
 pct_list     <- list()   # each year's axis percentages, same reason
 dominants    <- NULL     # dominant taxon per station, accumulated across years
-comp_plot_all <- NULL    # per-year composition, accumulated for the merged fig4
+comp_plot_all <- NULL    # per-year composition, accumulated for the merged fig_composition_par_station
 
 for (an in annees) {
 
@@ -410,7 +410,7 @@ for (an in annees) {
     xlab = sprintf("Axis 1 (%.1f %%)", pct[1]),
     ylab = sprintf("Axis 2 (%.1f %%)", pct[2]))
 
-  sauver_figure(paste0("fig2_pcoa_composition_", an, ".png"), pcoa_arrows, largeur = 7, hauteur = 7)
+  sauver_figure(paste0("fig_pcoa_composition_", an, ".png"), pcoa_arrows, largeur = 7, hauteur = 7)
 
   cat("\nTaxa correlated with the PCoA axes", an, "(envfit, p < 0.05):\n")
 
@@ -473,7 +473,7 @@ bar_comp_station <- ggplot(comp_plot_all, aes(x = location, y = percent, fill = 
   labs(x = "Station", y = "Annual relative abundance (%)",
        title = "Annual pollen composition per station")
 
-sauver_figure("fig4_composition_par_station.png", bar_comp_station, largeur = 10, hauteur = 14)
+sauver_figure("fig_composition_par_station.png", bar_comp_station, largeur = 10, hauteur = 14)
 
 
 ## diversity model, one per year.
@@ -512,7 +512,7 @@ box_div_station <- boxplot_station_periodes(div_samples, x = "location", y = "sh
                                    titre = "",
                                    facet = "year", log10 = FALSE)
 
-sauver_figure("fig3_shannon_par_station.png", box_div_station, largeur = 9, hauteur = 8)
+sauver_figure("fig_shannon_par_station.png", box_div_station, largeur = 9, hauteur = 8)
 
 
 
@@ -538,7 +538,7 @@ run_pam <- function(mat, etiquette) {
   medoids <- rownames(mat)[pam_fin$id.med]
 
   # k = 3 kept alongside the optimal k, even below the 0.25 threshold: it is
-  # the number of groups sometimes suggested by eye on the PCoA (fig2), so it
+  # the number of groups sometimes suggested by eye on the PCoA (fig_pcoa_composition), so it
   # is reported in Table 9 for comparison whatever the retained k.
   pam_k3     <- pam(d, k = 3, diss = TRUE)
   medoids_k3 <- rownames(mat)[pam_k3$id.med]
@@ -603,7 +603,7 @@ plot_silhouette <- ggplot(courbes, aes(x = k, y = sil, colour = year)) +
        title = "How many distinct groups of stations ?",
        subtitle = "Dashed line = 0.25 threshold below which there is no real structure")
 
-sauver_figure("fig5_silhouette_pam.png", plot_silhouette, largeur = 7, hauteur = 5)
+sauver_figure("fig_silhouette_pam.png", plot_silhouette, largeur = 7, hauteur = 5)
 
 ## map of the groups and the medoids
 carte_2022 <- data.frame(location = names(pam_2022$clustering),
@@ -632,7 +632,7 @@ map_clusters <- ggplot(carte_clusters, aes(x = Longitude, y = Latitude, colour =
        title = "Groups of stations based on the annual pollen composition",
        subtitle = "Triangles = recommended medoid stations")
 
-sauver_figure("fig6_carte_groupes_stations.png", map_clusters, largeur = 11, hauteur = 6)
+sauver_figure("fig_carte_groupes_stations.png", map_clusters, largeur = 11, hauteur = 6)
 
 
 ## Mantel test: geographic distance vs pollen distance.

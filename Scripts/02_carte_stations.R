@@ -1,4 +1,4 @@
-# Map of the 25 sampling stations (fig0 of the article): canopy cover as
+# Map of the 25 sampling stations (fig_carte_stations of the article): canopy cover as
 # colour, population density as symbol size.
 
 source("R/init.R")
@@ -73,5 +73,5 @@ print(map_samplers)
 # tmap object.
 dir.create(DIR_FIG_ARTICLE, recursive = TRUE, showWarnings = FALSE)
 
-tmap_save(map_samplers, file.path(DIR_FIG_ARTICLE, "fig0_carte_stations.png"),
+tmap_save(map_samplers, file.path(DIR_FIG_ARTICLE, "fig_carte_stations.png"),
           width = 8, height = 8, units = "in", dpi = 300)
