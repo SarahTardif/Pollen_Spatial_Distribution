@@ -1,8 +1,8 @@
-# Ingestion step, run ONCE (not sourced by the other scripts): reads the 3
+# preparation step, run ONCE (not sourced by the other scripts): reads the 3
 # yearly parquet files, derives period/year/location/comments from h5_key,
 # filters at Confidence >= CONF_MIN and writes the CSVs the rest of the project
 # reads through charger_pollen(). Re-run after any change to the cleaning logic
-# below, otherwise the downstream scripts keep reading the stale CSVs.
+# below, otherwise the downstream scripts keep reading the output CSVs.
 
 source("R/init.R")
 library(arrow)
