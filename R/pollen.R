@@ -1,10 +1,6 @@
 # Pollen data loading and the station x period x year x taxon grid with true
 # zeros. OTHER is kept here; it is excluded further down, in the scripts,
-# wherever composition rather than total load is involved.
 
-# Reads and stacks the cleaned yearly CSVs (written by 01_preparer_pollen.R).
-# The columns used as factors are coerced to character so that downstream
-# droplevels()/factor() calls always behave the same way.
 charger_pollen <- function(annees, dir = DIR_DATA_POLLEN) {
   data_pollen <- NULL
   for (an in annees) {
@@ -17,10 +13,7 @@ charger_pollen <- function(annees, dir = DIR_DATA_POLLEN) {
   data_pollen
 }
 
-# The samples that actually exist, i.e. the reference grid for
-# completer_zeros(). The sampling design is incomplete (25 stations x 7 periods
-# x 2 years = 350 possible combinations, fewer actually collected): without
-# this table, "taxon absent" and "sample never collected" would be confounded.
+
 echantillons <- function(df, cols = c("location", "period", "year")) {
   ech <- unique(df[, cols])
   rownames(ech) <- NULL

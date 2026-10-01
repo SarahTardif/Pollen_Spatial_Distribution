@@ -7,7 +7,7 @@ TAXATORM <- c("Gramineae", "Ambrosia")   # non-tree taxa, removed
 
 ## CRS
 CRS_WGS84 <- 4326   # lat/lon, as stored in locations_traps.csv
-CRS_MTM   <- 32188  # MTM zone 8 (Quebec), in metres, for real-world distances
+CRS_MTM   <- 32188  # MTM zone 8, in metres, for real-world distances
 
 ## Paths
 DIR_DATA_POLLEN <- "./Data/Data_pollen"
@@ -15,7 +15,7 @@ DIR_OUT_ARTICLE <- "./Outputs/article"
 DIR_FIG_ARTICLE <- "./Outputs/article/figures"
 
 ## Taxon subset (palettes, figures)
-N_TOP_TAXONS <- 10   # size of the "top" subset, see top_taxons() in R/matrices.R
+N_TOP_TAXONS <- 10 # see top_taxons() in R/matrices.R
 
 ## Palettes
 # Pollen taxa: 10 distinct colours + a grey for "Others".
@@ -24,8 +24,7 @@ COULEURS_TAXONS <- c("#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f",
 
 COULEUR_AUTRES <- "grey80"   # colour of the "Others" group
 
-# Canopy cover classes, shared by the station map (02) and the PCoA (04) so the
-# two figures can never diverge.
+# Canopy cover classes, shared by the station map (02) and the PCoA (04) 
 CANOPY_BREAKS <- c(-Inf, 10, 20, 30, Inf)
 CANOPY_LABELS <- c("less than 10", "from 10 to 19.9", "from 20 to 29.9", "30 and more")
 COULEURS_CANOPY <- setNames(c("white", "#a1d99b", "#41ab5d", "#00441b"), CANOPY_LABELS)

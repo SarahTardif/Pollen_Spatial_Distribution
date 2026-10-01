@@ -22,8 +22,7 @@ distances_stations <- function(locs_sf, stations, id_col = "trap") {
                  dimnames = list(stations, stations)))
 }
 
-# Socio-environmental gradients per station (NDVI, canopy cover, population
-# density). The header carries a UTF-8 BOM, hence renaming the first column.
+# Socio-environmental gradients per station (NDVI, canopy cover, population density)
 charger_gradients <- function(fichier = "./Data/Gradients_plots.csv") {
   gradients <- read.csv(fichier, header = TRUE)
   names(gradients)[1] <- "Plot"
