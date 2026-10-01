@@ -1,32 +1,32 @@
-# Vrais zeros et matrices station/echantillon x taxon.
+# True zeros and station/sample x taxon matrices.
 #
-# Deux remplissages de zeros coexistent volontairement:
-#   1. completer_zeros() remplit la grille en format long qui alimente les
-#      modeles, en distinguant "taxon absent d'un echantillon collecte" (vrai
-#      zero) de "echantillon jamais collecte" (ligne absente, aucun zero).
-#   2. acast(..., fill = 0) dans les deux fonctions de matrice est un simple
-#      remplissage structurel, une fois les vrais zeros deja en place.
+# Two zero-fills coexist on purpose:
+#   1. completer_zeros() fills the long-format grid that feeds the models,
+#      keeping "taxon absent from a collected sample" (a true zero) distinct
+#      from "sample never collected" (a missing row, no zero inserted).
+#   2. acast(..., fill = 0) in both matrix functions is a purely structural
+#      fill, applied once the true zeros are already in place.
 
 library(reshape2)
 
-# Jointure de `valeurs` sur la grille complete `grille`, les lignes manquantes
-# recevant `defaut` (0) dans `colonne_valeur`.
+# Joins `valeurs` onto the full grid `grille`, missing rows getting `defaut`
+# (0) in `colonne_valeur`.
 completer_zeros <- function(grille, valeurs, by, colonne_valeur, defaut = 0) {
   df <- merge(grille, valeurs, by = by, all.x = TRUE)
   df[[colonne_valeur]][is.na(df[[colonne_valeur]])] <- defaut
   df
 }
 
-# Matrice station x taxon, a appeler sur des donnees deja agregees a ce grain
-# (par exemple une annee a la fois).
+# Station x taxon matrix, to be called on data already aggregated to that grain
+# (one year at a time, for instance).
 mat_station_taxon <- function(df, station_col, taxon_col, valeur_col = "count") {
   formule <- stats::as.formula(paste(station_col, "~", taxon_col))
   acast(df, formule, value.var = valeur_col, fill = 0)
 }
 
-# Matrice au grain de l'echantillon: une ligne par combinaison de `id_cols`
-# (jointes par "|"), une colonne par taxon. Les lignes de somme nulle sont
-# retirees sauf si drop_vides = FALSE.
+# Sample-level matrix: one row per combination of `id_cols` (joined by "|"),
+# one column per taxon. Rows summing to zero are dropped unless
+# drop_vides = FALSE.
 mat_echantillon_taxon <- function(df, id_cols, taxon_col, valeur_col = "count",
                                   sep = "|", drop_vides = TRUE) {
   row_id <- do.call(paste, c(df[id_cols], sep = sep))
@@ -36,12 +36,12 @@ mat_echantillon_taxon <- function(df, id_cols, taxon_col, valeur_col = "count",
   mat
 }
 
-# Version en abondances relatives d'une matrice de comptages (lignes = 1).
+# Relative-abundance version of a count matrix (rows sum to 1).
 en_relatif <- function(mat) mat / rowSums(mat)
 
-# Noms des n taxons les plus abondants, toutes matrices passees confondues.
-# L'appelant passe exactement la ou les matrices qui alimentent le modele ou la
-# figure en cours, pour que le "top" corresponde a ce qui est reellement montre.
+# Names of the n most abundant taxa, pooled across whichever matrices are
+# passed in. The caller passes exactly the matrix/matrices feeding the model or
+# figure at hand, so the "top" always matches what is actually shown.
 top_taxons <- function(..., n = N_TOP_TAXONS) {
   totaux <- colSums(do.call(rbind, list(...)))
   names(sort(totaux, decreasing = TRUE))[1:n]

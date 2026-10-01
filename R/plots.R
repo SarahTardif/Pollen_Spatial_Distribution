@@ -1,14 +1,14 @@
-# Fonctions de figures partagees: palettes de taxons, fleches envfit,
-# ordinations, heatmaps, sauvegarde des figures.
+# Shared plotting functions: taxon palettes, envfit arrows, ordinations,
+# heatmaps, figure saving.
 
 library(ggplot2)
 library(scatterpie)
 library(vegan)
 library(ggrepel)
 
-# Vecteur de couleurs nomme pour les taxons du "top" + un groupe fourre-tout.
-# Si `top` depasse la palette de base, des couleurs distinctes supplementaires
-# sont ajoutees plutot que de recycler celle d'un taxon existant.
+# Named colour vector for the "top" taxa + a catch-all group. If `top` is
+# longer than the base palette, extra distinct colours are appended rather than
+# recycling an existing taxon's colour.
 palette_taxons <- function(top, couleurs = COULEURS_TAXONS,
                            autres_label = "Others", autres_couleur = COULEUR_AUTRES) {
   if (length(top) > length(couleurs)) {
@@ -17,25 +17,24 @@ palette_taxons <- function(top, couleurs = COULEURS_TAXONS,
   setNames(c(couleurs[seq_along(top)], autres_couleur), c(top, autres_label))
 }
 
-# envfit des taxons sur les axes d'une ordination, avec les pointes de fleches
-# deja mises a l'echelle pour le trace. `axes` nomme les deux colonnes de
-# scores a utiliser (par exemple c("Axe1","Axe2") pour une PCoA).
+# envfit of the taxa onto the ordination axes, with arrow tips already scaled
+# for plotting. `axes` names the two score columns to use (for instance
+# c("Axe1","Axe2") for a PCoA).
 fleches_envfit <- function(ord, mat, sc, axes, seuil_p = 0.05, taxons_filtre = NULL,
                            top_n = NULL, permutations = N_PERM, graine = GRAINE) {
   set.seed(graine)
   ef    <- envfit(ord, mat, permutations = permutations)
   ef_df <- as.data.frame(scores(ef, display = "vectors"))
   ef_df$p     <- ef$vectors$pvals
-  ef_df$r2    <- ef$vectors$r  # vegan le nomme "r" mais c'est deja le r carre
+  ef_df$r2    <- ef$vectors$r  # vegan names it "r" but it is already the squared r
   ef_df$taxon <- rownames(ef_df)
 
   garder <- ef_df$p < seuil_p
   if (!is.null(taxons_filtre)) garder <- garder & ef_df$taxon %in% taxons_filtre
   ef_sig <- ef_df[garder, ]
 
-  # top_n garde les taxons les mieux correles aux axes (r2 envfit le plus
-  # eleve): avec une trentaine de taxons, presque tous sortent significatifs et
-  # les fleches se superposent.
+  # top_n keeps the taxa that best fit the axes (highest envfit r2): with about
+  # thirty taxa almost all come out significant and the arrows overlap.
   if (!is.null(top_n) && nrow(ef_sig) > top_n) {
     ef_sig <- ef_sig[order(-ef_sig$r2), ][seq_len(top_n), ]
   }
@@ -51,9 +50,9 @@ fleches_envfit <- function(ord, mat, sc, axes, seuil_p = 0.05, taxons_filtre = N
   list(complet = ef_df, sig = ef_sig)
 }
 
-# Graphique d'ordination: points etiquetes (pies = FALSE) ou camemberts
-# (pies = TRUE), avec fleches envfit optionnelles (`fleches` = l'element `sig`
-# retourne par fleches_envfit()) et annotation de stress optionnelle.
+# Ordination plot: labelled points (pies = FALSE) or scatterpie markers
+# (pies = TRUE), with optional envfit arrows (`fleches` = the `sig` element
+# returned by fleches_envfit()) and an optional stress annotation.
 plot_ordination <- function(sc, axes, id_col, pies = FALSE,
                             pie_cols = NULL, pie_r_col = "r", palette = NULL,
                             fleches = NULL, label_offset = LABEL_OFFSET,
@@ -69,10 +68,9 @@ plot_ordination <- function(sc, axes, id_col, pies = FALSE,
     geom_hline(yintercept = 0, colour = "grey75", linewidth = 0.3) +
     geom_vline(xintercept = 0, colour = "grey75", linewidth = 0.3)
 
-  # Les etiquettes de stations sont accumulees ici plutot que tracees tout de
-  # suite, pour etre fusionnees avec celles des fleches dans un seul appel a
-  # geom_text_repel(): deux appels separes n'evitent les chevauchements qu'a
-  # l'interieur de chaque appel, pas entre eux.
+  # Station labels are collected here rather than drawn immediately, so they
+  # can be merged with the arrow labels into a single geom_text_repel() call:
+  # two separate calls only avoid overlaps within each call, not between them.
   station_labels <- NULL
 
   if (pies) {
@@ -85,8 +83,8 @@ plot_ordination <- function(sc, axes, id_col, pies = FALSE,
                  seed = GRAINE, segment.color = NA) +
       scale_fill_manual(values = palette, name = NULL)
   } else if (!is.null(point_colour_col)) {
-    # forme 21 (remplissable, contour trace) pour que la classe au remplissage
-    # blanc reste visible sur le fond du graphique
+    # shape 21 (fillable, stroked outline) so the white-filled class stays
+    # visible against the plot background
     p <- p +
       geom_point(data = sc, aes(x = .data[[ax1]], y = .data[[ax2]], fill = .data[[point_colour_col]]),
                 shape = 21, size = 2.6, colour = "grey30", stroke = 0.4) +
@@ -121,9 +119,9 @@ plot_ordination <- function(sc, axes, id_col, pies = FALSE,
                                  label = fleches$taxon, fontface = "italic", colour = "grey10",
                                  size = txt_size, stringsAsFactors = FALSE)
 
-      # Points fantomes le long de chaque fleche (invisibles, alpha = 0): ggrepel
-      # contourne les points traces mais pas les segments, donc sans eux les
-      # etiquettes passent par-dessus les fleches.
+      # Phantom points along each arrow (invisible, alpha = 0): ggrepel routes
+      # labels around plotted points but not around segments, so without these
+      # the labels end up drawn on top of the arrows.
       t_interior <- c(0.25, 0.5, 0.75, 0.9)
       arrow_obstacles <- data.frame(
         x = as.vector(outer(t_interior, fleches$x1)),
@@ -167,9 +165,9 @@ plot_ordination <- function(sc, axes, id_col, pies = FALSE,
   p + labs(x = xlab, y = ylab, title = titre, subtitle = sous_titre)
 }
 
-# Couche geom_text placant les lettres de Tukey au-dessus de la valeur maximale
-# de chaque groupe (par niveau de facette s'il y en a). `lettres` doit avoir une
-# colonne nommee comme `x` (et comme `facet`, le cas echeant) plus `label`.
+# geom_text layer placing the Tukey letters above each group's maximum value
+# (per facet level, if any). `lettres` must have a column named like `x` (and
+# like `facet`, where applicable) plus `label`.
 lettres_layer <- function(df, x, y, lettres, facet = NULL, nudge = 1.1) {
   by_cols <- if (!is.null(facet)) c(x, facet) else x
   y_max <- aggregate(df[y], by = as.list(df[by_cols]), FUN = max)
@@ -180,10 +178,10 @@ lettres_layer <- function(df, x, y, lettres, facet = NULL, nudge = 1.1) {
             inherit.aes = FALSE, vjust = 0)
 }
 
-# Heatmap d'une reponse sur station x periode, un panneau par annee.
-# `divergent = TRUE` utilise une echelle bleu-blanc-rouge centree sur
-# `midpoint` (par defaut la mediane), ce qui fait ressortir les ecarts entre
-# stations plutot que la magnitude globale.
+# Heatmap of one response over station x period, one panel per year.
+# `divergent = TRUE` uses a blue-white-red scale centred on `midpoint` (the
+# median by default), which brings out station-to-station differences rather
+# than the overall magnitude.
 heatmap_station_periode <- function(df, x = "period", y = "location", fill = "count",
                                      facet = NULL, facet_nrow = 1, log10 = FALSE, divergent = FALSE,
                                      midpoint = NULL, angle_x = 45, xlab = "Period", ylab = "Station",
@@ -212,7 +210,7 @@ heatmap_station_periode <- function(df, x = "period", y = "location", fill = "co
     labs(x = xlab, y = ylab, title = titre)
 }
 
-# Enveloppe de ggsave: cree le dossier de sortie au besoin, fixe dpi = 300.
+# ggsave wrapper: creates the output directory if needed, fixes dpi = 300.
 sauver_figure <- function(nom, plot, dir = DIR_FIG_ARTICLE, largeur = 8, hauteur = 8, dpi = 300) {
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
   ggsave(file.path(dir, nom), plot, width = largeur, height = hauteur, dpi = dpi)

@@ -1,8 +1,7 @@
-# Script autonome: donnees climatiques journalieres de Montreal (2022-2023).
-# Telecharge les donnees de la station meteo la plus proche et produit une
-# figure a 2 colonnes (2022 et 2023) avec temperature, vent, orientation du
-# vent et pluie. Ne depend pas de R/init.R: copiable tel quel dans un autre
-# projet.
+# Standalone script: daily climate data for Montreal (2022-2023). Downloads
+# the data of the nearest weather station and produces a 2-column figure (2022
+# and 2023) with temperature, wind, wind direction and rain. Does not depend on
+# R/init.R: can be copied as-is into another project.
 
 library(weathercan)
 library(dplyr)
@@ -11,7 +10,7 @@ if (!dir.exists("./Outputs/climatedata")) {
   dir.create("./Outputs/climatedata", recursive = TRUE, showWarnings = FALSE)
 }
 
-# Distance haversine entre deux points, en km.
+# Haversine distance between two points, in km.
 haversine_km <- function(lat1, lon1, lat2, lon2) {
   R    <- 6371
   dlat <- (lat2 - lat1) * pi / 180
@@ -20,7 +19,7 @@ haversine_km <- function(lat1, lon1, lat2, lon2) {
   2 * R * asin(sqrt(a))
 }
 
-## Chercher la meilleure station pour Montreal, en priorisant les aeroports
+## Find the best station for Montreal, prioritising airports
 
 cat("Telechargement de la liste des stations...\n")
 all_stations <- stations()
@@ -53,7 +52,7 @@ selected_stations <- airport_stations %>%
   slice_head(n = min(2, nrow(airport_stations)))
 
 if (nrow(selected_stations) == 0) {
-  # repli sur les 2 stations les plus proches
+  # fall back to the 2 nearest stations
   selected_stations <- stations_candidates %>%
     arrange(distance_km) %>%
     slice_head(n = 2)
@@ -66,7 +65,7 @@ print(selected_stations %>%
 
 station_ids <- selected_stations$station_id
 
-## Telecharger les donnees journalieres 2022-2023
+## Download the 2022-2023 daily data
 
 cat("\nTelechargement des donnees journalieres de", length(station_ids), "station(s)...\n")
 
@@ -88,7 +87,7 @@ donnees <- bind_rows(all_data)
 cat("Donnees telechargees :", nrow(donnees), "lignes\n")
 cat("Nombre de stations avec donnees:", n_distinct(donnees$station_id), "\n")
 
-## Preparer les donnees
+## Prepare the data
 
 donnees <- donnees %>%
   mutate(
@@ -105,7 +104,7 @@ donnees <- donnees %>%
   ) %>%
   arrange(date)
 
-# Fusion des stations: pour chaque date, la 1re valeur non-NA de chaque variable
+# Merging stations: for each date, the first non-NA value of each variable
 donnees_combined <- donnees %>%
   group_by(date) %>%
   summarise(
@@ -123,7 +122,7 @@ donnees_combined <- donnees %>%
   ) %>%
   arrange(date)
 
-# les 0 de pluie sont potentiellement des valeurs manquantes
+# rain values of 0 are potentially missing values
 donnees_combined <- donnees_combined %>%
   mutate(
     total_rain = case_when(
@@ -141,7 +140,7 @@ print(summary(donnees))
 write.csv(donnees, "./Outputs/climatedata/montreal_daily_2022_2023.csv", row.names = FALSE)
 cat("\nDonnees sauvegardees: ./Outputs/climatedata/montreal_daily_2022_2023.csv\n")
 
-## Semaines de phenologie de chaque annee
+## Phenology weeks of each year
 
 weeks_2022 <- data.frame(
   week = c("W1", "W2", "W3", "W4", "W5", "W6", "W7"),
@@ -159,16 +158,16 @@ weeks_2023 <- data.frame(
                    "2023-06-06", "2023-06-20", "2023-07-04"))
 )
 
-# Convertit un nombre de lignes de marge (comme line= dans mtext()) en
-# coordonnee Y "user", pour positionner les accolades a distance constante de
-# l'axe quel que soit ylim. mtext() seul ne permet pas de tracer les traits.
+# Converts a number of margin lines (like line= in mtext()) into a "user" Y
+# coordinate, so the brackets sit at a constant distance from the axis whatever
+# ylim is. mtext() alone cannot draw the bracket strokes.
 line_to_user_y <- function(line) {
   ligne_pouces <- par("cin")[2] * par("cex") * par("lheight")
   decalage <- diff(grconvertY(c(0, ligne_pouces), from = "inches", to = "user"))
   par("usr")[3] - line * decalage
 }
 
-# Accolades des semaines sous l'axe des x.
+# Week brackets below the x axis.
 draw_week_brackets <- function(weeks_data) {
   usr <- par()$usr
   y_max <- usr[4]
@@ -190,9 +189,9 @@ draw_week_brackets <- function(weeks_data) {
   }
 }
 
-## Figure combinee: 2022 a gauche, 2023 a droite
+## Combined figure: 2022 on the left, 2023 on the right
 
-# Donnees d'une annee, de fin mars a mi-juillet.
+# One year's data, from late March to mid-July.
 preparer_annee <- function(data_year, year_value) {
   data_year %>%
     filter(year == year_value) %>%
@@ -204,8 +203,8 @@ preparer_annee <- function(data_year, year_value) {
 d_2022 <- preparer_annee(donnees, 2022)
 d_2023 <- preparer_annee(donnees, 2023)
 
-# Limites Y calculees sur les deux annees combinees pour que les deux colonnes
-# de la figure soient directement comparables a l'oeil.
+# Y limits computed over both years combined so the two columns of the figure
+# are directly comparable by eye.
 temp_vals <- c(d_2022$min_temp, d_2022$max_temp, d_2023$min_temp, d_2023$max_temp)
 if (sum(!is.na(temp_vals)) > 0) {
   ylim_temp <- range(temp_vals, na.rm = TRUE) + c(-2, 2)
@@ -213,8 +212,8 @@ if (sum(!is.na(temp_vals)) > 0) {
   ylim_temp <- c(-30, 30)
 }
 
-# ylim doit partir de 0: type="h" trace chaque barre depuis y=0, donc si l'axe
-# demarre au-dessus de 0 la base des barres sort du panneau.
+# ylim must start at 0: type="h" draws each bar from y=0, so if the axis starts
+# above 0 the base of the bars falls outside the panel.
 wind_vals <- c(d_2022$spd_max_gust, d_2023$spd_max_gust)
 if (sum(!is.na(wind_vals)) > 0) {
   ylim_wind_speed <- c(0, max(wind_vals, na.rm = TRUE) + 5)
@@ -232,9 +231,9 @@ if (sum(!is.na(rain_vals)) > 0) {
 
 filename_combine <- "./Outputs/climatedata/montreal_daily_2022_2023.png"
 
-# Trace les 4 panneaux d'une annee dans la colonne courante du layout. Les
-# ylim_* sont pris dans l'environnement englobant (calcules une fois pour les
-# deux annees ci-dessus).
+# Draws the 4 panels of one year in the current column of the layout. The
+# ylim_* are taken from the enclosing environment (computed once for both years
+# above).
 dessiner_colonne_annee <- function(d, year_value, weeks_current) {
 
   if (nrow(d) == 0) {
@@ -242,7 +241,7 @@ dessiner_colonne_annee <- function(d, year_value, weeks_current) {
     return()
   }
 
-  # Panneau 1: temperature (Tmin, Tmoy, Tmax)
+  # Panel 1: temperature (Tmin, Tmean, Tmax)
   par(mar = c(5, 4, 2, 1))
   plot(d$date, d$mean_temp,
        type = "l", col = "grey50", lwd = 1.5,
@@ -262,7 +261,7 @@ dessiner_colonne_annee <- function(d, year_value, weeks_current) {
 
   draw_week_brackets(weeks_current)
 
-  # Panneau 2: vitesse du vent
+  # Panel 2: wind speed
   par(mar = c(5, 4, 1, 1))
   plot(d$date, d$spd_max_gust,
        type = "h", col = "navy", lwd = 1.5,
@@ -272,9 +271,8 @@ dessiner_colonne_annee <- function(d, year_value, weeks_current) {
 
   draw_week_brackets(weeks_current)
 
-  # Panneau 3: orientation du vent. yaxt="n" + axis() manuel: les ticks par
-  # defaut pour ylim=c(0,360) tombent sur 0/50/100/... et ne correspondent a
-  # aucune direction cardinale.
+  # Panel 3: wind direction. yaxt="n" + manual axis(): the default ticks for
+  # ylim=c(0,360) fall on 0/50/100/... and match no cardinal direction.
   par(mar = c(5, 4, 1, 1))
   plot(d$date, d$dir_max_gust,
        type = "p", col = "grey40", pch = 16, cex = 0.4,
@@ -288,7 +286,7 @@ dessiner_colonne_annee <- function(d, year_value, weeks_current) {
 
   draw_week_brackets(weeks_current)
 
-  # Panneau 4: pluie totale
+  # Panel 4: total rain
   par(mar = c(5, 4, 1, 1))
   plot(d$date, d$total_rain,
        type = "h", col = "steelblue", lwd = 1.5,
@@ -299,12 +297,12 @@ dessiner_colonne_annee <- function(d, year_value, weeks_current) {
   draw_week_brackets(weeks_current)
 }
 
-# pointsize = 13: tous les cex.* ci-dessus sont relatifs a pointsize, donc ce
-# seul reglage fait grossir tout le texte proportionnellement.
+# pointsize = 13: every cex.* above is relative to pointsize, so this single
+# setting scales all the text proportionally.
 png(filename_combine, width = 18, height = 18, units = "cm", res = 600, pointsize = 13)
 
-# par(mfcol=...) remplit par colonne (les 4 panneaux d'une annee d'abord), ce
-# qui met 2022 entierement a gauche et 2023 entierement a droite.
+# par(mfcol=...) fills by column (the 4 panels of one year first), which puts
+# 2022 entirely on the left and 2023 entirely on the right.
 par(mfcol = c(4, 2),
     mgp = c(2.5, 0.7, 0),
     xpd = NA)

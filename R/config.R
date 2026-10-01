@@ -1,41 +1,41 @@
-# Constantes partagees par les scripts: seuils, CRS, chemins, palettes et
-# constantes graphiques.
+# Constants shared across scripts: thresholds, CRS, paths, palettes and
+# graphical constants.
 
-## Nettoyage des donnees
-CONF_MIN <- 0.8   # seuil de confiance, applique dans 01_preparer_pollen.R
-TAXATORM <- c("Gramineae", "Ambrosia")   # taxons non arborescents, retires
+## Data cleaning
+CONF_MIN <- 0.8   # confidence threshold, applied in 01_preparer_pollen.R
+TAXATORM <- c("Gramineae", "Ambrosia")   # non-tree taxa, removed
 
 ## CRS
-CRS_WGS84 <- 4326   # lat/lon, format de locations_traps.csv
-CRS_MTM   <- 32188  # MTM zone 8 (Quebec), en metres, pour les distances reelles
+CRS_WGS84 <- 4326   # lat/lon, as stored in locations_traps.csv
+CRS_MTM   <- 32188  # MTM zone 8 (Quebec), in metres, for real-world distances
 
-## Chemins
+## Paths
 DIR_DATA_POLLEN <- "./Data/Data_pollen"
 DIR_OUT_ARTICLE <- "./Outputs/article"
 DIR_FIG_ARTICLE <- "./Outputs/article/figures"
 
-## Sous-ensemble de taxons (palettes, figures)
-N_TOP_TAXONS <- 10   # taille du sous-ensemble "top", voir top_taxons() dans R/matrices.R
+## Taxon subset (palettes, figures)
+N_TOP_TAXONS <- 10   # size of the "top" subset, see top_taxons() in R/matrices.R
 
 ## Palettes
-# Taxons polliniques: 10 couleurs distinctes + un gris pour "Others".
+# Pollen taxa: 10 distinct colours + a grey for "Others".
 COULEURS_TAXONS <- c("#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f",
                      "#edc948", "#b07aa1", "#ff9da7", "#9c755f", "#bab0ac")
 
-COULEUR_AUTRES <- "grey80"   # couleur du groupe "Others"
+COULEUR_AUTRES <- "grey80"   # colour of the "Others" group
 
-# Classes de couvert forestier, partagees par la carte des stations (02) et la
-# PCoA (04) pour que les deux figures ne puissent pas diverger.
+# Canopy cover classes, shared by the station map (02) and the PCoA (04) so the
+# two figures can never diverge.
 CANOPY_BREAKS <- c(-Inf, 10, 20, 30, Inf)
 CANOPY_LABELS <- c("less than 10", "from 10 to 19.9", "from 20 to 29.9", "30 and more")
 COULEURS_CANOPY <- setNames(c("white", "#a1d99b", "#41ab5d", "#00441b"), CANOPY_LABELS)
 
 COULEURS_ANNEES <- c("2022" = "#4e79a7", "2023" = "#e15759")
 
-## Constantes graphiques des ordinations
-FLECHE_SCALE <- 0.65   # longueur des fleches envfit, en fraction du demi-domaine
-LABEL_OFFSET <- 1.12   # etiquette de taxon placee juste au-dela de la pointe
+## Graphical constants for ordination plots
+FLECHE_SCALE <- 0.65   # envfit arrow length, as a fraction of the half-range
+LABEL_OFFSET <- 1.12   # taxon label placed just beyond the arrow tip
 
-## Reproductibilite
-GRAINE <- 42    # set.seed() pour toute permutation ou ordination
-N_PERM <- 999   # permutations pour adonis2 / envfit / mantel
+## Reproducibility
+GRAINE <- 42    # set.seed() for every permutation or ordination
+N_PERM <- 999   # permutations for adonis2 / envfit / mantel

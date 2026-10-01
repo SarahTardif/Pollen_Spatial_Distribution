@@ -1,9 +1,9 @@
-# Pipeline d'analyse de l'article: distribution spatiale du pollen a Montreal.
-# Trois questions:
-#   1. l'abondance pollinique varie-t-elle entre les stations ?
-#   2. la composition pollinique varie-t-elle entre les stations ?
-#   3. combien de stations, et lesquelles, pour un reseau representatif ?
-# 2022 et 2023 sont toujours modelisees separement.
+# Analysis pipeline for the article: spatial distribution of pollen in Montreal.
+# Three questions:
+#   1. does pollen abundance vary between stations ?
+#   2. does pollen composition vary between stations ?
+#   3. how many stations, and which ones, for a representative network ?
+# 2022 and 2023 are always modelled separately.
 
 source("R/init.R")
 library(glmmTMB)
@@ -11,44 +11,44 @@ library(vegan)
 library(cluster)
 library(emmeans)
 library(multcompView)
-library(multcomp)   # fournit cld(); emmeans n'enregistre que la methode
+library(multcomp)   # provides cld(); emmeans only registers the method
 
 dir.create(DIR_FIG_ARTICLE, recursive = TRUE, showWarnings = FALSE)
 
-#### PREPARATION DES DONNEES ####
+#### DATA PREPARATION ####
 
-## pollen, deja filtre a Confidence >= CONF_MIN par 01_preparer_pollen.R
+## pollen data, already filtered at Confidence >= CONF_MIN by 01_preparer_pollen.R
 data_pollen <- charger_pollen(c(2022, 2023))
 locations   <- charger_stations()
 
-# classe de couvert forestier par station, memes 4 classes et couleurs que la
-# carte des stations (script 02) -- sert a colorer les points de la PCoA (fig2)
+# canopy cover class per station, same 4 classes and colours as the station
+# map (script 02) -- used to colour the PCoA points (fig2)
 gradients <- charger_gradients()
 locations$canopy_classe <- classer_canopy(
   gradients$Canopy.cover....[match(locations$trap, gradients$Plot)])
 
 annees <- sort(unique(data_pollen$year))
 
-## echantillons reellement collectes, grille de reference pour les vrais zeros
+## samples actually collected, the reference grid for the true zeros
 data_samples <- echantillons(data_pollen)
 cat("Samples collected:", nrow(data_samples), "\n")
 
-## comptages par station x periode x annee x taxon, zeros inclus.
-# OTHER est conserve ici car il fait partie de la charge pollinique totale; il
-# est retire plus bas partout ou il s'agit de composition.
+## counts per station x period x year x taxon, zeros included.
+# OTHER is kept here because it is part of the total pollen load; it is removed
+# further down wherever composition is involved.
 ab_taxon <- comptages_pollen(data_pollen, data_samples)
 
-## charge pollinique totale, OTHER inclus
+## total pollen load, OTHER included
 ab_tot      <- abondance_totale(ab_taxon)
 ab_tot_year <- aggregate(count ~ location + year, data = ab_tot, FUN = sum)
 
-## tables de composition, OTHER exclu
+## composition tables, OTHER excluded
 ab_taxon_comp <- ab_taxon[ab_taxon$Pred_Genus != "OTHER", ]
 
-## charge totale sans OTHER, utilisee dans la section 1
+## total load without OTHER, used in section 1
 ab_tot_noOTHER <- abondance_totale(ab_taxon_comp)
 
-# matrices annuelles, une par annee, lignes = stations
+# annual matrices, one per year, rows = stations
 ab_year_taxon <- aggregate(count ~ location + year + Pred_Genus,
                            data = ab_taxon_comp, FUN = sum)
 
@@ -58,9 +58,9 @@ mat_2023 <- mat_station_taxon(ab_year_taxon[ab_year_taxon$year == "2023", ], "lo
 mat_rel_2022 <- en_relatif(mat_2022)
 mat_rel_2023 <- en_relatif(mat_2023)
 
-# matrice au grain de l'echantillon (station|periode|annee x taxon), pour
-# Shannon et la PERMANOVA. Tous les taxons sauf OTHER: la PERMANOVA n'est pas
-# restreinte au top10, contrairement aux modeles par taxon plus bas.
+# sample-level matrix (station|period|year x taxon), for Shannon and the
+# PERMANOVA. Every taxon except OTHER: the PERMANOVA is not restricted to the
+# top10, unlike the per-taxon models further down.
 mat_samples     <- mat_echantillon_taxon(ab_taxon_comp, c("location", "period", "year"), "Pred_Genus")
 mat_rel_samples <- en_relatif(mat_samples)
 
@@ -76,18 +76,18 @@ cat("Annual rows:", nrow(mat_2022), "+", nrow(mat_2023),
     "| sample rows:", nrow(mat_samples),
     "| taxa (without OTHER):", ncol(mat_samples), "\n")
 
-## top10 par annee, calcule annee par annee (non groupe) pour que les modeles
-## et figures de chaque annee refletent ses propres taxons dominants
+## per-year top10, computed year by year (not pooled) so each year's models
+## and figures reflect that year's own dominant taxa
 top10_2022 <- top_taxons(mat_2022)
 top10_2023 <- top_taxons(mat_2023)
 top10_list <- list("2022" = top10_2022, "2023" = top10_2023)
 
 
 
-#### 1. VARIATION SPATIALE DE L'ABONDANCE ####
-## OTHER exclu. location et period sont tous deux des effets fixes
-## (count ~ location + period, sans terme aleatoire): un seul modele fournit
-## ainsi les lettres de Tukey des stations et celles des periodes.
+#### 1. SPATIAL VARIATION IN ABUNDANCE ####
+## OTHER excluded. location and period are both fixed effects
+## (count ~ location + period, no random term): one single model therefore
+## supplies both the station and the period Tukey letters.
 
 ab_tot_noOTHER$location <- factor(ab_tot_noOTHER$location)
 ab_tot_noOTHER$period   <- factor(ab_tot_noOTHER$period)
@@ -95,7 +95,7 @@ ab_tot_noOTHER$period   <- factor(ab_tot_noOTHER$period)
 ab_tot_noOTHER_2022 <- droplevels(ab_tot_noOTHER[ab_tot_noOTHER$year == "2022", ])
 ab_tot_noOTHER_2023 <- droplevels(ab_tot_noOTHER[ab_tot_noOTHER$year == "2023", ])
 
-## modele d'abondance totale, un par annee
+## total abundance model, one per year
 mod_ab_2022_noOTHER <- glmmTMB(count ~ location + period,
                                data = ab_tot_noOTHER_2022, family = nbinom2)
 res_ab_2022_noOTHER <- valider(mod_ab_2022_noOTHER, "Abundance 2022 (OTHER excluded, location + period fixed)", tracer = FALSE, verbose = FALSE)
@@ -113,12 +113,12 @@ emm_per_2023_noOTHER <- emmeans(mod_ab_2023_noOTHER, ~ period, type = "response"
 cld_per_2023_noOTHER <- cld(emm_per_2023_noOTHER, adjust = "tukey", Letters = letters)
 
 
-## heatmap descriptive de l'abondance totale par station x periode.
-## Un modele ajuste periode par periode se reduirait a une seule valeur par
-## station x annee (plus aucune replication a tester), d'ou cette heatmap
-## plutot qu'un modele. Coloree par l'ecart a la mediane de SA periode x annee
-## (via ave()) plutot qu'a une mediane globale: cela isole la variation entre
-## stations au lieu d'etre dominee par le signal saisonnier.
+## descriptive heatmap of the total abundance per station x period.
+## A model fit period by period would collapse to a single value per
+## station x year (no replication left to test), hence this heatmap rather than
+## a model. Coloured by the deviation from ITS OWN period x year median (via
+## ave()) rather than a global median: this isolates station-to-station
+## variation instead of being dominated by the seasonal signal.
 ab_tot_noOTHER$log_count         <- log10(ab_tot_noOTHER$count)
 ab_tot_noOTHER$mediane_log_count <- ave(ab_tot_noOTHER$log_count,
                                         ab_tot_noOTHER$period, ab_tot_noOTHER$year,
@@ -135,11 +135,10 @@ sauver_figure("fig1c_heatmap_abondance_station_periode.png", heatmap_ab_station_
               largeur = 8, hauteur = 10)
 
 
-## un modele count ~ location + period par taxon (tous les taxons, OTHER
-## exclu). Leurs tests omnibus sont rapportes au tableau 3 par le script 05;
-## ces tests disent si l'abondance d'un taxon varie entre stations mais pas
-## comment, d'ou la fig1d plus bas qui montre la distribution par station,
-## taxon par taxon.
+## one count ~ location + period model per taxon (all taxa, OTHER excluded).
+## Their omnibus tests are reported in Table 3 by script 05; those tests say
+## whether a taxon's abundance varies between stations but not how, hence fig1d
+## below, which shows the per-station distribution taxon by taxon.
 fit_taxon_models <- function(dat) {
 
   taxa <- unique(as.character(dat$Pred_Genus))
@@ -185,46 +184,46 @@ ab_taxon_2023$period     <- factor(ab_taxon_2023$period)
 ab_taxon_2023$Pred_Genus <- factor(ab_taxon_2023$Pred_Genus)
 
 out_abrel_taxon_2022 <- fit_taxon_models(ab_taxon_2022)
-mod_abrel_taxon_2022  <- out_abrel_taxon_2022$models    # liste nommee, 1 glmmTMB par taxon
-skip_abrel_taxon_2022 <- out_abrel_taxon_2022$skipped   # taxon -> raison de non-ajustement
+mod_abrel_taxon_2022  <- out_abrel_taxon_2022$models    # named list, 1 glmmTMB per taxon
+skip_abrel_taxon_2022 <- out_abrel_taxon_2022$skipped   # taxon -> reason it was not fit
 
 out_abrel_taxon_2023 <- fit_taxon_models(ab_taxon_2023)
 mod_abrel_taxon_2023  <- out_abrel_taxon_2023$models
 skip_abrel_taxon_2023 <- out_abrel_taxon_2023$skipped
 
 
-## taxons montres sur la fig1d: les 12 plus abondants de chaque annee. Les ~33
-## taxons x 25 stations sur une figure seraient illisibles.
+## taxa shown on fig1d: the 12 most abundant of each year. All ~33 taxa x 25
+## stations on one figure would be unreadable.
 top12_list <- list("2022" = top_taxons(mat_2022, n = 12),
                    "2023" = top_taxons(mat_2023, n = 12))
 
 
-## fig1d: un panneau par taxon, boxplots horizontaux par station avec les
-## echantillons individuels en points. Comptages bruts, soit la distribution
-## sur laquelle chaque modele par taxon a ete ajuste.
-## scales = "free_x" est necessaire: les comptages par taxon couvrent plusieurs
-## ordres de grandeur, un axe commun aplatirait tous les panneaux sauf un.
-## Transformation log1p (ln(1+x)) et non log10: un taxon absent d'un
-## echantillon collecte est un vrai zero, et log10(0) supprimerait justement
-## les points montrant qu'une station n'a aucun grain de ce taxon.
-## L'ordre des stations est l'ordre canonique (locations$trap) et non un tri
-## par mediane: avec un ordre different par panneau, comparer la position d'une
-## station d'un taxon a l'autre serait impossible.
+## fig1d: one panel per taxon, horizontal station boxplots with the individual
+## samples as points. Raw counts, i.e. the distribution each per-taxon model
+## was fit on.
+## scales = "free_x" is required: taxon counts span several orders of
+## magnitude, and a shared axis would flatten every panel but one.
+## log1p (ln(1+x)) transform rather than log10: a taxon absent from a collected
+## sample is a true zero, and log10(0) would drop exactly the points showing
+## that a station has no grain of that taxon.
+## Station order is the canonical one (locations$trap), not a sort by median:
+## with a different order per panel, comparing where a station sits from one
+## taxon to the next would be impossible.
 boxplot_taxon_station <- function(df, taxons, ordre_stations, titre) {
 
   df <- df[df$Pred_Genus %in% taxons, ]
-  df$Pred_Genus <- factor(df$Pred_Genus, levels = taxons)   # taxon le plus abondant en premier
-  df$location   <- factor(df$location, levels = rev(ordre_stations))  # rev: 1re station en haut
+  df$Pred_Genus <- factor(df$Pred_Genus, levels = taxons)   # most abundant taxon first
+  df$location   <- factor(df$location, levels = rev(ordre_stations))  # rev: first station on top
 
-  # moyenne par panneau, pre-agregee et passee via le `data` de geom_vline():
-  # une couche stat_summary() resumerait par categorie y (une ligne par
-  # station) au lieu d'une par panneau.
+  # per-panel mean, pre-aggregated and passed through geom_vline()'s own
+  # `data`: a stat_summary() layer would summarise per y category (one line per
+  # station) instead of one per panel.
   moy <- aggregate(count ~ Pred_Genus, data = df, FUN = mean)
 
   ggplot(df, aes(x = count, y = location)) +
     geom_vline(data = moy, aes(xintercept = count),
                linetype = "dashed", colour = "grey40", linewidth = 0.3) +
-    # outlier.shape = NA: chaque point est deja trace individuellement plus bas
+    # outlier.shape = NA: every point is already drawn individually below
     geom_boxplot(fill = "grey90", colour = "grey40", outlier.shape = NA, linewidth = 0.3,
                 orientation = "y") +
     geom_jitter(height = 0.15, width = 0, size = 0.7, alpha = 0.5, colour = "grey30") +
@@ -254,11 +253,11 @@ for (an in annees) {
 }
 
 
-## Boxplot par station avec les 7 points de periode en surimpression et une
-## ligne de moyenne globale par panneau d'annee (fig1 et fig3).
-# La moyenne est pre-agregee (une ligne par niveau de facette) plutot que
-# laissee au regroupement implicite de stat_summary(), qui avec un x discret
-# resumait par categorie x (une ligne par station au lieu d'une par panneau).
+## Station boxplot with the 7 period points on top and a global mean line per
+## year panel (fig1 and fig3).
+# The mean is pre-aggregated (one row per facet level) rather than left to
+# stat_summary()'s implicit grouping, which with a discrete x summarised per x
+# category (one line per station instead of one per panel).
 boxplot_station_periodes <- function(df, x, y, xlab = "Station", ylab, titre,
                                      facet = NULL, log10 = FALSE, angle_x = 45,
                                      lettres = NULL, nudge = 1.1, ordre = "median") {
@@ -289,10 +288,10 @@ boxplot_station_periodes <- function(df, x, y, xlab = "Station", ylab, titre,
 }
 
 
-## boxplot de l'abondance totale par station
-# echelle log10 (les comptages couvrent plusieurs ordres de grandeur), axe x en
-# ordre naturel, pas de lettres de Tukey sur la figure: les moyennes et lettres
-# par station sont au tableau 2.
+## boxplot of the total abundance per station
+# log10 scale (counts span several orders of magnitude), x axis in natural
+# order, no Tukey letters on the figure itself: the per-station means and
+# letters are in Table 2.
 box_ab_station <- boxplot_station_periodes(ab_tot_noOTHER, x = "location", y = "count",
                                   ylab = "Total abundance (number of pollen grains, log10)",
                                   titre = "",
@@ -301,7 +300,7 @@ box_ab_station <- boxplot_station_periodes(ab_tot_noOTHER, x = "location", y = "
 sauver_figure("fig1_abondance_totale_par_station.png", box_ab_station, largeur = 9, hauteur = 8)
 
 
-## boxplot de l'abondance totale par periode
+## boxplot of the total abundance per period
 box_ab_period <- boxplot_station_periodes(ab_tot_noOTHER, x = "period", y = "count", xlab = "Period",
                                  ylab = "Total abundance (number of pollen grains, log10)",
                                  titre = "",
@@ -310,17 +309,17 @@ box_ab_period <- boxplot_station_periodes(ab_tot_noOTHER, x = "period", y = "cou
 sauver_figure("fig1b_abondance_totale_par_period.png", box_ab_period, largeur = 9, hauteur = 8)
 
 
-#### 2. VARIATION SPATIALE DE LA COMPOSITION ####
+#### 2. SPATIAL VARIATION IN COMPOSITION ####
 
-## dissimilarite de Bray-Curtis + PERMANOVA, une par annee.
-# Le test tourne sur la matrice au grain de l'echantillon et non sur
-# l'annuelle: avec 25 lignes et 25 niveaux de station, le modele annuel serait
-# sature. period vient en premier dans le modele car la succession saisonniere
-# est de loin le signal le plus fort et absorberait sinon l'effet station; avec
-# by = "terms", location est teste APRES retrait de l'effet periode.
-# Ne pas ajouter blocks = period: sous permutation intra-bloc, la matrice de
-# design de period est invariante et les deux termes sortent avec la meme
-# p-value, denuee de sens.
+## Bray-Curtis dissimilarity + PERMANOVA, one per year.
+# The test runs on the sample-level matrix, not the annual one: with 25 rows
+# and 25 station levels the annual model would be saturated. period comes first
+# in the model because the seasonal succession is by far the strongest signal
+# and would otherwise soak up the station effect; with by = "terms", location
+# is tested AFTER the period effect has been removed.
+# Do not add blocks = period: under within-block permutation the period design
+# matrix is invariant and both terms come out with the same, meaningless
+# p-value.
 
 perm_comp <- list()
 for (an in annees) {
@@ -338,25 +337,24 @@ for (an in annees) {
 }
 
 
-## PCoA de la composition annuelle, avec fleches de taxons.
-# Memes taxons et meme methode Bray-Curtis que la PERMANOVA, mais agregee au
-# grain de la station (une ligne par station): c'est ce qui est lisible sur un
-# graphique, alors que la PERMANOVA a besoin de la replication au grain de
-# l'echantillon pour tester location. Bray-Curtis est semi-metrique, donc la
-# PCoA produit des valeurs propres negatives: elles sont quantifiees, et la
-# correction de Cailliez est appliquee si elles depassent 10 % de la variance
-# positive.
+## PCoA of the annual composition, with taxa arrows.
+# Same taxa and same Bray-Curtis method as the PERMANOVA, but aggregated at
+# station level (one row per station): that is what is readable on a plot,
+# whereas the PERMANOVA needs the sample-level replication to test location at
+# all. Bray-Curtis is semi-metric, so the PCoA produces negative eigenvalues:
+# they are quantified, and the Cailliez correction is applied if they exceed
+# 10 % of the positive variance.
 
 mat_rel_list <- list("2022" = mat_rel_2022, "2023" = mat_rel_2023)
 pcoa_list    <- list()
-envfit_list  <- list()   # ef_df de chaque annee, conserve pour le script 05
-pct_list     <- list()   # pourcentages d'axes de chaque annee, meme raison
-dominants    <- NULL     # taxon dominant par station, accumule sur les annees
-comp_plot_all <- NULL    # composition par annee, accumulee pour la fig4 fusionnee
+envfit_list  <- list()   # each year's ef_df, kept for script 05
+pct_list     <- list()   # each year's axis percentages, same reason
+dominants    <- NULL     # dominant taxon per station, accumulated across years
+comp_plot_all <- NULL    # per-year composition, accumulated for the merged fig4
 
 for (an in annees) {
 
-  # retirer les taxons absents cette annee-la (les colonnes nulles font echouer envfit)
+  # drop the taxa absent that year (null columns make envfit fail)
   mat_an <- mat_rel_list[[an]]
   mat_an <- mat_an[, colSums(mat_an) > 0, drop = FALSE]
 
@@ -366,7 +364,7 @@ for (an in annees) {
   eig     <- pcoa_an$eig
   var_pos <- sum(eig[eig > 0])
   var_neg <- abs(sum(eig[eig < 0]))
-  # part des valeurs propres negatives, calculee avant toute correction
+  # share of negative eigenvalues, computed before any correction
   pct_neg <- var_neg / var_pos * 100
   cat("\nPCoA", an, ": negative eigenvalues =",
       round(pct_neg, 1), "% of the positive variance\n")
@@ -391,17 +389,17 @@ for (an in annees) {
   sc_p$row_id   <- paste0(sc_p$location, "|", an)
   sc_p$canopy_classe <- locations$canopy_classe[match(sc_p$location, locations$trap)]
 
-  # envfit: taxons correles aux axes. Parmi les significatifs, seuls les mieux
-  # ajustes aux axes (r2 envfit le plus eleve) sont traces, sinon presque tous
-  # les taxons sortent significatifs et le graphique devient illisible.
+  # envfit: taxa correlated with the axes. Of the significant ones, only those
+  # best fitting the axes (highest envfit r2) are drawn, otherwise almost every
+  # taxon comes out significant and the plot becomes unreadable.
   fl     <- fleches_envfit(coord, mat_an, sc_p, axes = c("Axe1", "Axe2"), top_n = 15)
   ef_df  <- fl$complet
   ef_sig <- fl$sig
 
-  # Stations en points etiquetes: les camemberts rendaient le graphique
-  # illisible une fois les fleches de taxons ajoutees. Les points sont colores
-  # par classe de couvert forestier (memes classes que la carte du script 02)
-  # pour verifier a l'oeil si la composition s'aligne sur le couvert.
+  # Stations as labelled points: the pie charts made the plot unreadable once
+  # the taxa arrows were added. Points are coloured by canopy cover class (same
+  # classes as the map of script 02) to check by eye whether composition lines
+  # up with canopy cover.
   pcoa_arrows <- plot_ordination(
     sc_p, axes = c("Axe1", "Axe2"), id_col = "location", pies = FALSE,
     fleches = ef_sig,
@@ -416,15 +414,15 @@ for (an in annees) {
 
   cat("\nTaxa correlated with the PCoA axes", an, "(envfit, p < 0.05):\n")
 
-  # conserve pour le script 05, qui ne verrait sinon que la derniere annee
+  # kept for script 05, which would otherwise only see the last year
   envfit_list[[an]] <- ef_df
   pct_list[[an]]    <- data.frame(year = an, axis1_pct = pct[1], axis2_pct = pct[2],
                                   neg_eigen_pct = pct_neg, cailliez = cailliez)
 
-  ## composition de l'annee, gardee par annee (son propre top10 et son propre
-  # groupe "Others") mais accumulee pour que les deux annees soient tracees sur
-  # une figure fusionnee avec une palette coherente par taxon (voir apres la
-  # boucle), au lieu de deux fichiers aux couleurs independantes.
+  ## the year's composition, kept per year (its own top10 and its own "Others"
+  # group) but accumulated so both years can be drawn on one merged figure with
+  # a taxon-consistent palette (see after the loop), instead of two files with
+  # independent colours.
   top10_an <- top10_list[[an]]
 
   comp_long_an <- data.frame(
@@ -434,12 +432,12 @@ for (an in annees) {
     stringsAsFactors = FALSE
   )
 
-  # les taxons hors du top10 de l'annee sont regroupes dans "Others"
+  # taxa outside the year's top10 are lumped into "Others"
   comp_long_an$taxon_grp <- ifelse(comp_long_an$taxon %in% top10_an, comp_long_an$taxon, "Others")
   comp_plot_an <- aggregate(percent ~ location + taxon_grp, data = comp_long_an, FUN = sum)
   comp_plot_an$taxon_grp <- factor(comp_plot_an$taxon_grp, levels = c(top10_an, "Others"))
 
-  # taxon dominant de chaque station, cette annee-la
+  # dominant taxon of each station, that year
   dominants_an <- comp_plot_an[comp_plot_an$taxon_grp != "Others", ]
   dominants_an <- dominants_an[order(dominants_an$location, -dominants_an$percent), ]
   dominants_an <- dominants_an[!duplicated(dominants_an$location), ]
@@ -451,11 +449,11 @@ for (an in annees) {
 }
 
 
-## barres empilees de la composition annuelle par station, les deux annees sur
-# une figure (facettes par annee). Chaque annee garde son propre decoupage
-# top10/"Others" calcule plus haut; ce qui est unifie ici est seulement la
-# palette, via l'union des top10 des deux annees, ordonnee par abondance
-# combinee pour que la legende se lise du dominant au rare.
+## stacked bars of the annual composition per station, both years on one
+# figure (facetted by year). Each year keeps its own top10/"Others" split
+# computed above; what is unified here is only the palette, via the union of
+# both years' top10, ordered by combined abundance so the legend reads from
+# dominant to rare.
 taxa_union   <- Reduce(union, top10_list)
 totaux_union <- colSums(mat_2022[, taxa_union, drop = FALSE]) +
                colSums(mat_2023[, taxa_union, drop = FALSE])
@@ -478,9 +476,9 @@ bar_comp_station <- ggplot(comp_plot_all, aes(x = location, y = percent, fill = 
 sauver_figure("fig4_composition_par_station.png", bar_comp_station, largeur = 10, hauteur = 14)
 
 
-## modele de diversite, un par annee.
-# Shannon calcule par echantillon sur la matrice de composition (OTHER exclu),
-# donc chaque station a jusqu'a 7 periodes de replication dans une annee.
+## diversity model, one per year.
+# Shannon computed per sample on the composition matrix (OTHER excluded), so
+# each station has up to 7 periods of replication within a year.
 
 shannon_vals <- shannon(mat_samples)
 
@@ -508,7 +506,7 @@ emm_compdiv_2023 <- emmeans(mod_compdiv_2023, ~ location, type = "response")
 cld_compdiv_2023 <- cld(emm_compdiv_2023, adjust = "tukey", Letters = letters)
 
 
-## boxplot de l'indice de Shannon par station
+## boxplot of the Shannon index per station
 box_div_station <- boxplot_station_periodes(div_samples, x = "location", y = "shannon",
                                    ylab = "Shannon index",
                                    titre = "",
@@ -518,14 +516,14 @@ sauver_figure("fig3_shannon_par_station.png", box_div_station, largeur = 9, haut
 
 
 
-#### 3. COMBIEN DE STATIONS, ET LESQUELLES ####
+#### 3. HOW MANY STATIONS, AND WHICH ONES ####
 
-## k-medoides (PAM) sur la composition annuelle.
-# k balaye de 2 a 10, on garde le k de plus forte silhouette moyenne. Sous
-# 0.25, la silhouette indique qu'il n'y a pas de vraie structure de groupes.
-# Tourne sur la matrice d'abondances relatives, la meme que la PCoA: sur des
-# comptages bruts, Bray-Curtis n'est pas invariant a l'echelle et les stations
-# se separeraient par charge pollinique totale plutot que par composition.
+## k-medoids (PAM) on the annual composition.
+# k is swept from 2 to 10 and the k with the highest average silhouette is
+# kept. Below 0.25, the silhouette indicates there is no real group structure.
+# Runs on the relative-abundance matrix, the same one as the PCoA: on raw
+# counts, Bray-Curtis is not scale-invariant and the stations would separate by
+# total pollen load rather than by composition.
 run_pam <- function(mat, etiquette) {
   set.seed(GRAINE)
   d <- vegdist(mat, method = "bray")
@@ -539,9 +537,9 @@ run_pam <- function(mat, etiquette) {
   pam_fin <- pam(d, k = k_opt, diss = TRUE)
   medoids <- rownames(mat)[pam_fin$id.med]
 
-  # k = 3 conserve a cote du k optimal, meme sous le seuil de 0.25: c'est le
-  # nombre de groupes parfois suggere a l'oeil sur la PCoA (fig2), donc
-  # rapporte au tableau 9 pour comparaison quel que soit le k retenu.
+  # k = 3 kept alongside the optimal k, even below the 0.25 threshold: it is
+  # the number of groups sometimes suggested by eye on the PCoA (fig2), so it
+  # is reported in Table 9 for comparison whatever the retained k.
   pam_k3     <- pam(d, k = 3, diss = TRUE)
   medoids_k3 <- rownames(mat)[pam_k3$id.med]
   sil_k3     <- sils[k_range == 3]
@@ -564,19 +562,19 @@ run_pam <- function(mat, etiquette) {
 pam_2022 <- run_pam(mat_rel_2022, "2022")
 pam_2023 <- run_pam(mat_rel_2023, "2023")
 
-## station "moyenne" unique.
-# Question differente de PAM: PAM groupe les stations et donne un medoide par
-# groupe; ici on demande a quoi ressemblerait un reseau d'une seule station,
-# soit laquelle a la composition annuelle la plus proche de la composition
-# moyenne de toutes les stations cette annee-la. Meme metrique Bray-Curtis,
-# obtenue en ajoutant la moyenne comme ligne supplementaire a la matrice.
+## single "average" station.
+# A different question from PAM: PAM groups the stations and gives one medoid
+# per group; here we ask what a single-station network would look like, i.e.
+# which station's annual composition is closest to the average composition
+# across all stations that year. Same Bray-Curtis metric, obtained by adding
+# the average as an extra row to the matrix.
 station_moyenne <- function(mat, etiquette) {
 
-  moyenne <- colMeans(mat)   # composition relative moyenne, une station = un poids
+  moyenne <- colMeans(mat)   # mean relative composition, one station = one weight
 
   mat_avec_moyenne <- rbind(mat, moyenne = moyenne)
   d         <- as.matrix(vegdist(mat_avec_moyenne, method = "bray"))
-  d_moyenne <- sort(d["moyenne", rownames(mat)])   # distance a la moyenne, plus proche d'abord
+  d_moyenne <- sort(d["moyenne", rownames(mat)])   # distance to the average, closest first
 
   station_rep <- names(d_moyenne)[1]
 
@@ -590,7 +588,7 @@ station_moyenne <- function(mat, etiquette) {
 station_moy_2022 <- station_moyenne(mat_rel_2022, "2022")
 station_moy_2023 <- station_moyenne(mat_rel_2023, "2023")
 
-## courbes de silhouette
+## silhouette curves
 courbes <- rbind(data.frame(pam_2022$courbe, year = "2022"),
                  data.frame(pam_2023$courbe, year = "2023"))
 
@@ -607,7 +605,7 @@ plot_silhouette <- ggplot(courbes, aes(x = k, y = sil, colour = year)) +
 
 sauver_figure("fig5_silhouette_pam.png", plot_silhouette, largeur = 7, hauteur = 5)
 
-## carte des groupes et des medoides
+## map of the groups and the medoids
 carte_2022 <- data.frame(location = names(pam_2022$clustering),
                          cluster  = factor(pam_2022$clustering),
                          year     = "2022",
@@ -637,12 +635,12 @@ map_clusters <- ggplot(carte_clusters, aes(x = Longitude, y = Latitude, colour =
 sauver_figure("fig6_carte_groupes_stations.png", map_clusters, largeur = 11, hauteur = 6)
 
 
-## test de Mantel: distance geographique vs distance pollinique.
-# Les coordonnees sont projetees en EPSG 32188 (MTM zone 8, metres) avant le
-# calcul des distances.
+## Mantel test: geographic distance vs pollen distance.
+# The coordinates are projected to EPSG 32188 (MTM zone 8, metres) before the
+# distances are computed.
 locs_sf <- en_mtm(locations[, c("trap", "Longitude", "Latitude")])
 
-mantel_res <- NULL   # accumule sur les annees, conserve pour le script 05
+mantel_res <- NULL   # accumulated across years, kept for script 05
 
 for (an in annees) {
 
@@ -651,12 +649,12 @@ for (an in annees) {
 
   dist_geo <- distances_stations(locs_sf, stations)
 
-  # composition: Bray-Curtis entre stations
+  # composition: Bray-Curtis between stations
   dist_comp <- vegdist(mat_an, method = "bray")
   set.seed(GRAINE)
   mantel_comp <- mantel(dist_comp, dist_geo, permutations = N_PERM)
 
-  # abondance: ecart de charge annuelle totale, en echelle log10
+  # abundance: difference in total annual load, on a log10 scale
   ab_an <- setNames(ab_tot_year$count[ab_tot_year$year == an],
                     ab_tot_year$location[ab_tot_year$year == an])
   dist_ab <- dist(log10(ab_an[stations]))

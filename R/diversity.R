@@ -1,8 +1,8 @@
-# Indice de Shannon, calcule d'une seule facon dans tout le projet.
+# Shannon index, computed one single way throughout the project.
 
 library(vegan)
 
-# Une valeur de Shannon par ligne d'une matrice de comptages taxon x echantillon.
+# One Shannon value per row of a sample x taxon count matrix.
 shannon <- function(mat, index = "shannon") {
   diversity(mat, index = index)
 }

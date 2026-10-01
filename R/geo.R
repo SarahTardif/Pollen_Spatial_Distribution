@@ -1,20 +1,20 @@
-# Coordonnees des stations, projection en metres et matrices de distances.
-# Toutes les distances reelles passent par la meme projection (EPSG 32188).
+# Station coordinates, projection in metres and distance matrices.
+# Every real-world distance goes through the same projection (EPSG 32188).
 
 library(sf)
 
-# Metadonnees des stations (piege, adresse, arrondissement, lon/lat).
+# Station metadata (trap, address, borough, lon/lat).
 charger_stations <- function(fichier = "./Data/locations_traps.csv") {
   read.csv(fichier, sep = ";", header = TRUE)
 }
 
-# Projette un data.frame lon/lat en MTM (metres), en objet sf.
+# Projects a lon/lat data.frame to MTM (metres), as an sf object.
 en_mtm <- function(df, coords = c("Longitude", "Latitude"), crs_origine = CRS_WGS84) {
   pts <- st_as_sf(df, coords = coords, crs = crs_origine)
   st_transform(pts, crs = CRS_MTM)
 }
 
-# Matrice des distances (metres) entre les stations donnees, en objet dist.
+# Distance matrix (metres) between the given stations, as a dist object.
 distances_stations <- function(locs_sf, stations, id_col = "trap") {
   idx <- match(stations, locs_sf[[id_col]])
   as.dist(matrix(as.numeric(st_distance(locs_sf[idx, ])),
@@ -22,8 +22,8 @@ distances_stations <- function(locs_sf, stations, id_col = "trap") {
                  dimnames = list(stations, stations)))
 }
 
-# Gradients socio-environnementaux par station (NDVI, couvert, densite de
-# population). L'entete porte un BOM UTF-8, d'ou le renommage de la 1re colonne.
+# Socio-environmental gradients per station (NDVI, canopy cover, population
+# density). The header carries a UTF-8 BOM, hence renaming the first column.
 charger_gradients <- function(fichier = "./Data/Gradients_plots.csv") {
   gradients <- read.csv(fichier, header = TRUE)
   names(gradients)[1] <- "Plot"
@@ -31,7 +31,7 @@ charger_gradients <- function(fichier = "./Data/Gradients_plots.csv") {
   gradients
 }
 
-# Couvert forestier (%) -> facteur a 4 classes (seuils dans R/config.R).
+# Canopy cover (%) -> 4-class factor (thresholds in R/config.R).
 classer_canopy <- function(canopy_pct) {
   cut(canopy_pct, breaks = CANOPY_BREAKS, labels = CANOPY_LABELS, right = FALSE)
 }

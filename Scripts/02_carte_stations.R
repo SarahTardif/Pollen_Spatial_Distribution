@@ -1,5 +1,5 @@
-# Carte des 25 stations d'echantillonnage (fig0 de l'article): couvert
-# forestier en couleur, densite de population en taille de symbole.
+# Map of the 25 sampling stations (fig0 of the article): canopy cover as
+# colour, population density as symbol size.
 
 source("R/init.R")
 library(sf)
@@ -12,9 +12,9 @@ locations <- charger_stations()
 gradients <- charger_gradients()
 locations <- merge(locations, gradients, by.x = "trap", by.y = "Plot")
 
-# Couvert forestier et densite de population en 4 classes chacun. Les seuils de
-# couvert viennent de classer_canopy() (R/geo.R), partages avec la PCoA du
-# script 04 pour que les deux figures ne puissent pas diverger.
+# Canopy cover and population density, 4 classes each. The canopy thresholds
+# come from classer_canopy() (R/geo.R), shared with the PCoA of script 04 so
+# the two figures can never diverge.
 locations$canopy_classe <- classer_canopy(locations$Canopy.cover....)
 locations$densite_classe <- cut(locations$Population.density..people.km.2.,
                                 breaks = c(-Inf, 3000, 5000, 11000, Inf),
@@ -23,17 +23,17 @@ locations$densite_classe <- cut(locations$Population.density..people.km.2.,
                                 right = FALSE)
 
 locations_points <- st_as_sf(locations, coords = c("Longitude", "Latitude"), crs = CRS_WGS84)
-locations_points <- st_transform(locations_points, crs = CRS_MTM)   # meme projection que lim_map
+locations_points <- st_transform(locations_points, crs = CRS_MTM)   # same projection as lim_map
 
-# Les polygones d'arrondissement debordent sur le fleuve la ou la limite
-# administrative suit le milieu du cours d'eau; on decoupe sur l'emprise
-# terrestre pour que les traits pointilles ne traversent plus l'eau.
+# The borough polygons spill onto the river where the administrative boundary
+# follows the middle of the watercourse; they are clipped to the land extent so
+# the dashed lines no longer cross the water.
 lim_admin <- st_make_valid(lim_admin)
 lim_map   <- st_make_valid(lim_map)
 lim_admin_terre <- st_intersection(lim_admin, st_union(lim_map))
 
-# Emprise zoomee sur le centre de l'ile (bbox des stations + marge), plutot que
-# l'emprise complete de lim_map qui deborde sur la Rive-Sud et Laval.
+# Extent zoomed on the centre of the island (stations bbox + margin), rather
+# than lim_map's full extent, which spills over the South Shore and Laval.
 marge <- 4000 # metres
 bbox_zoom <- st_bbox(locations_points)
 bbox_zoom["xmin"] <- bbox_zoom["xmin"] - marge
@@ -41,14 +41,14 @@ bbox_zoom["xmax"] <- bbox_zoom["xmax"] + marge
 bbox_zoom["ymin"] <- bbox_zoom["ymin"] - marge
 bbox_zoom["ymax"] <- bbox_zoom["ymax"] + marge
 
-# Etiquette en diagonale haut-droite du cercle; seule 12C, collee a 12B, passe
-# a gauche pour ne pas se chevaucher.
+# Label placed diagonally above-right of the circle; only 12C, sitting right
+# against 12B, moves to the left so the two do not overlap.
 locations_points$label_xmod <- 0.7
 locations_points$label_ymod <- 1
 locations_points$label_xmod[locations_points$trap == "12C"] <- -0.7
 
-# Fleche nord et echelle: fonctions tmap natives, les equivalents ggspatial ne
-# s'appliquent qu'aux objets ggplot2.
+# North arrow and scale bar: native tmap functions, since the ggspatial
+# equivalents only apply to ggplot2 objects.
 map_samplers <- tm_shape(lim_map, bbox = bbox_zoom) + tm_fill() + tm_borders() +
   tm_shape(lim_admin_terre) + tm_borders(col = "grey60") +
   tm_shape(locations_points) +
@@ -68,9 +68,9 @@ map_samplers <- tm_shape(lim_map, bbox = bbox_zoom) + tm_fill() + tm_borders() +
   tm_scalebar(position = c("right", "bottom"))
 print(map_samplers)
 
-# Meme convention que les autres figures (300 dpi, Outputs/article/figures),
-# mais via tmap_save(): sauver_figure() appelle ggsave(), qui ne fonctionne pas
-# sur un objet tmap.
+# Same convention as the other figures (300 dpi, Outputs/article/figures), but
+# through tmap_save(): sauver_figure() calls ggsave(), which does not work on a
+# tmap object.
 dir.create(DIR_FIG_ARTICLE, recursive = TRUE, showWarnings = FALSE)
 
 tmap_save(map_samplers, file.path(DIR_FIG_ARTICLE, "fig0_carte_stations.png"),

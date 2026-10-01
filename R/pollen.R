@@ -1,10 +1,10 @@
-# Chargement des donnees polliniques et grille station x periode x annee x
-# taxon avec les vrais zeros. OTHER est conserve ici; il est exclu plus loin,
-# dans les scripts, partout ou il s'agit de composition et non de charge totale.
+# Pollen data loading and the station x period x year x taxon grid with true
+# zeros. OTHER is kept here; it is excluded further down, in the scripts,
+# wherever composition rather than total load is involved.
 
-# Lit et empile les CSV annuels nettoyes (ecrits par 01_preparer_pollen.R). Les
-# colonnes utilisees comme facteurs sont forcees en caractere pour que les
-# droplevels()/factor() en aval se comportent toujours pareil.
+# Reads and stacks the cleaned yearly CSVs (written by 01_preparer_pollen.R).
+# The columns used as factors are coerced to character so that downstream
+# droplevels()/factor() calls always behave the same way.
 charger_pollen <- function(annees, dir = DIR_DATA_POLLEN) {
   data_pollen <- NULL
   for (an in annees) {
@@ -17,17 +17,17 @@ charger_pollen <- function(annees, dir = DIR_DATA_POLLEN) {
   data_pollen
 }
 
-# Les echantillons qui existent reellement, soit la grille de reference de
-# completer_zeros(). Le plan d'echantillonnage est incomplet (25 stations x 7
-# periodes x 2 annees = 350 combinaisons possibles, moins collectees): sans
-# cette table, "taxon absent" et "echantillon non collecte" seraient confondus.
+# The samples that actually exist, i.e. the reference grid for
+# completer_zeros(). The sampling design is incomplete (25 stations x 7 periods
+# x 2 years = 350 possible combinations, fewer actually collected): without
+# this table, "taxon absent" and "sample never collected" would be confounded.
 echantillons <- function(df, cols = c("location", "period", "year")) {
   ech <- unique(df[, cols])
   rownames(ech) <- NULL
   ech
 }
 
-# Comptages par station x periode x annee x taxon, vrais zeros inclus.
+# Counts per station x period x year x taxon, true zeros included.
 comptages_pollen <- function(data_pollen, ech) {
   ab_counts <- as.data.frame(table(location   = data_pollen$location,
                                    period     = data_pollen$period,
@@ -45,7 +45,7 @@ comptages_pollen <- function(data_pollen, ech) {
                   colonne_valeur = "count")
 }
 
-# Charge pollinique totale par echantillon (tous taxons, OTHER inclus).
+# Total pollen load per sample (all taxa, OTHER included).
 abondance_totale <- function(ab_taxon) {
   aggregate(count ~ location + period + year, data = ab_taxon, FUN = sum)
 }
