@@ -1,5 +1,5 @@
 # Standalone script: daily climate data for Montreal (2022-2023). Downloads
-# the data of the nearest weather station and produces a 2-column figure (2022
+# the data of the airport weather station and produces a 2-column figure (2022
 # and 2023) with temperature, wind, wind direction and rain. Does not depend on
 # R/init.R: can be copied as-is into another project.
 
@@ -158,9 +158,7 @@ weeks_2023 <- data.frame(
                    "2023-06-06", "2023-06-20", "2023-07-04"))
 )
 
-# Converts a number of margin lines (like line= in mtext()) into a "user" Y
-# coordinate, so the brackets sit at a constant distance from the axis whatever
-# ylim is. mtext() alone cannot draw the bracket strokes.
+# adjustments
 line_to_user_y <- function(line) {
   ligne_pouces <- par("cin")[2] * par("cex") * par("lheight")
   decalage <- diff(grconvertY(c(0, ligne_pouces), from = "inches", to = "user"))
@@ -203,8 +201,7 @@ preparer_annee <- function(data_year, year_value) {
 d_2022 <- preparer_annee(donnees, 2022)
 d_2023 <- preparer_annee(donnees, 2023)
 
-# Y limits computed over both years combined so the two columns of the figure
-# are directly comparable by eye.
+# adjustments
 temp_vals <- c(d_2022$min_temp, d_2022$max_temp, d_2023$min_temp, d_2023$max_temp)
 if (sum(!is.na(temp_vals)) > 0) {
   ylim_temp <- range(temp_vals, na.rm = TRUE) + c(-2, 2)
@@ -212,8 +209,6 @@ if (sum(!is.na(temp_vals)) > 0) {
   ylim_temp <- c(-30, 30)
 }
 
-# ylim must start at 0: type="h" draws each bar from y=0, so if the axis starts
-# above 0 the base of the bars falls outside the panel.
 wind_vals <- c(d_2022$spd_max_gust, d_2023$spd_max_gust)
 if (sum(!is.na(wind_vals)) > 0) {
   ylim_wind_speed <- c(0, max(wind_vals, na.rm = TRUE) + 5)
@@ -231,9 +226,7 @@ if (sum(!is.na(rain_vals)) > 0) {
 
 filename_combine <- "./Outputs/climatedata/montreal_daily_2022_2023.png"
 
-# Draws the 4 panels of one year in the current column of the layout. The
-# ylim_* are taken from the enclosing environment (computed once for both years
-# above).
+# adjustments
 dessiner_colonne_annee <- function(d, year_value, weeks_current) {
 
   if (nrow(d) == 0) {
@@ -271,8 +264,7 @@ dessiner_colonne_annee <- function(d, year_value, weeks_current) {
 
   draw_week_brackets(weeks_current)
 
-  # Panel 3: wind direction. yaxt="n" + manual axis(): the default ticks for
-  # ylim=c(0,360) fall on 0/50/100/... and match no cardinal direction.
+  # Panel 3: wind direction.
   par(mar = c(5, 4, 1, 1))
   plot(d$date, d$dir_max_gust,
        type = "p", col = "grey40", pch = 16, cex = 0.4,
@@ -297,12 +289,10 @@ dessiner_colonne_annee <- function(d, year_value, weeks_current) {
   draw_week_brackets(weeks_current)
 }
 
-# pointsize = 13: every cex.* above is relative to pointsize, so this single
-# setting scales all the text proportionally.
+# 
 png(filename_combine, width = 18, height = 18, units = "cm", res = 600, pointsize = 13)
 
-# par(mfcol=...) fills by column (the 4 panels of one year first), which puts
-# 2022 entirely on the left and 2023 entirely on the right.
+
 par(mfcol = c(4, 2),
     mgp = c(2.5, 0.7, 0),
     xpd = NA)

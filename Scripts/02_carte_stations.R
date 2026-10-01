@@ -1,5 +1,4 @@
-# Map of the 25 sampling stations (fig_carte_stations of the article): canopy cover as
-# colour, population density as symbol size.
+# Map of the 25 sampling stations (fig_carte_stations): canopy cover as colour, population density as symbol size.
 
 source("R/init.R")
 library(sf)
@@ -25,15 +24,11 @@ locations$densite_classe <- cut(locations$Population.density..people.km.2.,
 locations_points <- st_as_sf(locations, coords = c("Longitude", "Latitude"), crs = CRS_WGS84)
 locations_points <- st_transform(locations_points, crs = CRS_MTM)   # same projection as lim_map
 
-# The borough polygons spill onto the river where the administrative boundary
-# follows the middle of the watercourse; they are clipped to the land extent so
-# the dashed lines no longer cross the water.
 lim_admin <- st_make_valid(lim_admin)
 lim_map   <- st_make_valid(lim_map)
 lim_admin_terre <- st_intersection(lim_admin, st_union(lim_map))
 
-# Extent zoomed on the centre of the island (stations bbox + margin), rather
-# than lim_map's full extent, which spills over the South Shore and Laval.
+# Zoom on the centre of the island (stations bbox + margin)
 marge <- 4000 # metres
 bbox_zoom <- st_bbox(locations_points)
 bbox_zoom["xmin"] <- bbox_zoom["xmin"] - marge
@@ -41,14 +36,12 @@ bbox_zoom["xmax"] <- bbox_zoom["xmax"] + marge
 bbox_zoom["ymin"] <- bbox_zoom["ymin"] - marge
 bbox_zoom["ymax"] <- bbox_zoom["ymax"] + marge
 
-# Label placed diagonally above-right of the circle; only 12C, sitting right
-# against 12B, moves to the left so the two do not overlap.
+# Label adjustments
 locations_points$label_xmod <- 0.7
 locations_points$label_ymod <- 1
 locations_points$label_xmod[locations_points$trap == "12C"] <- -0.7
 
-# North arrow and scale bar: native tmap functions, since the ggspatial
-# equivalents only apply to ggplot2 objects.
+# North arrow and scale bar
 map_samplers <- tm_shape(lim_map, bbox = bbox_zoom) + tm_fill() + tm_borders() +
   tm_shape(lim_admin_terre) + tm_borders(col = "grey60") +
   tm_shape(locations_points) +
@@ -68,9 +61,7 @@ map_samplers <- tm_shape(lim_map, bbox = bbox_zoom) + tm_fill() + tm_borders() +
   tm_scalebar(position = c("right", "bottom"))
 print(map_samplers)
 
-# Same convention as the other figures (300 dpi, Outputs/article/figures), but
-# through tmap_save(): sauver_figure() calls ggsave(), which does not work on a
-# tmap object.
+# Same convention as the other figures (300 dpi, Outputs/article/figures), but through tmap_save()
 dir.create(DIR_FIG_ARTICLE, recursive = TRUE, showWarnings = FALSE)
 
 tmap_save(map_samplers, file.path(DIR_FIG_ARTICLE, "fig_carte_stations.png"),

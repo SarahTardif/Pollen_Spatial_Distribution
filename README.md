@@ -12,7 +12,7 @@ R scripts to reproduce results from the study of the spatial distribution of air
 | `01_preparer_pollen.R` | Import the yearly parquet predictions, derive period/year/location, filter on classification confidence, write the cleaned CSVs |
 | `02_carte_stations.R` | Map of the 25 sampling stations, by canopy cover and population density |
 | `03_climat_montreal.R` | Select weather stations, download and merge daily climate data, plot climate trends for 2022 and 2023 |
-| `04_article_analyses.R` | Main analysis: abundance models, PERMANOVA, PCoA, Shannon diversity, PAM clustering, Mantel tests, all figures |
+| `04_article_analyses.R` | Main analysis: abundance models, PERMANOVA, PCoA, Shannon diversity, Mantel tests, all figures |
 | `05_article_tableaux.R` | Format the fitted models into publication-ready tables (markdown + Word) |
 
 ## Shared modules
