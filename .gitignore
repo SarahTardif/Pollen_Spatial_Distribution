@@ -1,0 +1,11 @@
+# Donnees: trop volumineuses pour GitHub (limite de 100 MB par fichier)
+Data/
+
+# Sorties regenerables par les scripts
+Outputs/
+
+# R
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
