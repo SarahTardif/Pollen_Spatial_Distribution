@@ -92,13 +92,12 @@ tab_anova <- function(mod, etiquette, garder_p_num = FALSE) {
 }
 
 # emmeans + Tukey letters of one model.
-tab_cld <- function(cld_obj, an, groupe_col = "location", nom_groupe = "Station") {
+tab_cld <- function(cld_obj, groupe_col = "location", nom_groupe = "Station") {
   d <- as.data.frame(cld_obj)
   est <- if ("response"  %in% names(d)) d$response  else d$emmean
   lcl <- if ("asymp.LCL" %in% names(d)) d$asymp.LCL else d$lower.CL
   ucl <- if ("asymp.UCL" %in% names(d)) d$asymp.UCL else d$upper.CL
   out <- data.frame(
-    Year     = an,
     Groupe   = as.character(d[[groupe_col]]),
     Estimate = fmt_num(est),
     SE       = fmt_num(d$SE),
@@ -106,16 +105,15 @@ tab_cld <- function(cld_obj, an, groupe_col = "location", nom_groupe = "Station"
     High     = fmt_num(ucl),
     Group    = trimws(as.character(d$.group)),
     stringsAsFactors = FALSE)
-  names(out) <- c("Year", nom_groupe, "Estimated mean (grains)", "SE",
+  names(out) <- c(nom_groupe, "Estimated mean (grains)", "SE",
                   "95% CI lower", "95% CI upper", "Tukey group")
   out
 }
 
-# adonis2 output of one year.
-tab_permanova <- function(res, an) {
+# adonis2 output.
+tab_permanova <- function(res) {
   d <- as.data.frame(res)
   out <- data.frame(
-    Year = c(an, rep("", nrow(d) - 1)),
     Term = rownames(d),
     Df   = fmt_int(d[["Df"]]),
     SS   = fmt_num(d[["SumOfSqs"]]),
@@ -123,7 +121,7 @@ tab_permanova <- function(res, an) {
     F    = fmt_num(d[["F"]]),
     p    = fmt_p(d[["Pr(>F)"]]),
     stringsAsFactors = FALSE)
-  names(out) <- c("Year", "Term", "df", "Sum of squares", "R2", "F", "p")
+  names(out) <- c("Term", "df", "Sum of squares", "R2", "F", "p")
   out
 }
 

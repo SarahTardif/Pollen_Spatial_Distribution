@@ -39,7 +39,7 @@ bbox_zoom["ymax"] <- bbox_zoom["ymax"] + marge
 # Label adjustments
 locations_points$label_xmod <- 0.7
 locations_points$label_ymod <- 1
-locations_points$label_xmod[locations_points$trap == "12C"] <- -0.7
+#locations_points$label_xmod[locations_points$trap == "12C"] <- -0.7
 
 # North arrow and scale bar
 map_samplers <- tm_shape(lim_map, bbox = bbox_zoom) + tm_fill() + tm_borders() +
@@ -48,11 +48,6 @@ map_samplers <- tm_shape(lim_map, bbox = bbox_zoom) + tm_fill() + tm_borders() +
   tm_symbols(fill = "canopy_classe",
              fill.scale = tm_scale_categorical(values = COULEURS_CANOPY),
              fill.legend = tm_legend(title = "Canopy cover (%)", text.size = 0.8, title.size = 0.8,
-                                     item.height = 0.6, item.width = 0.6,
-                                     position = tm_pos_in("left", "top")),
-             size = "densite_classe",
-             size.scale = tm_scale_categorical(values = c(0.6, 1.2, 1.8, 2.4)),
-             size.legend = tm_legend(title = "Population density(hab/km²)", text.size = 0.8, title.size = 0.8,
                                      item.height = 0.6, item.width = 0.6,
                                      position = tm_pos_in("left", "top"))) +
   tm_text("trap", size = 0.8, xmod = "label_xmod", ymod = "label_ymod",

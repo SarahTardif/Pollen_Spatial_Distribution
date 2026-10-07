@@ -1,30 +1,28 @@
-# Pollen data loading and the station x period x year x taxon grid with true
+# Pollen data loading and the station x period x taxon grid with true
 # zeros. OTHER is kept here; it is excluded further down, in the scripts,
 
-charger_pollen <- function(annees, dir = DIR_DATA_POLLEN) {
-  data_pollen <- NULL
-  for (an in annees) {
-    morceau     <- read.csv(file.path(dir, paste0("data", an, ".csv")), header = TRUE)
-    data_pollen <- rbind(data_pollen, morceau)
-  }
-  for (col in c("location", "period", "year", "Pred_Genus")) {
+charger_pollen <- function(fichier = file.path(DIR_DATA_POLLEN, "dataMaya.csv")) {
+  data_pollen <- read.csv(fichier, header = TRUE)
+  for (col in c("location", "Pred_Genus")) {
     data_pollen[[col]] <- as.character(data_pollen[[col]])
   }
+  # numeric order of the periods (1, 2, ..., 10), not alphabetical
+  data_pollen$period <- factor(data_pollen$period,
+                               levels = sort(unique(as.integer(data_pollen$period))))
   data_pollen
 }
 
 
-echantillons <- function(df, cols = c("location", "period", "year")) {
+echantillons <- function(df, cols = c("location", "period")) {
   ech <- unique(df[, cols])
   rownames(ech) <- NULL
   ech
 }
 
-# Counts per station x period x year x taxon, true zeros included.
+# Counts per station x period x taxon, true zeros included.
 comptages_pollen <- function(data_pollen, ech) {
   ab_counts <- as.data.frame(table(location   = data_pollen$location,
                                    period     = data_pollen$period,
-                                   year       = data_pollen$year,
                                    Pred_Genus = data_pollen$Pred_Genus),
                              stringsAsFactors = FALSE)
   names(ab_counts)[names(ab_counts) == "Freq"] <- "count"
@@ -34,11 +32,11 @@ comptages_pollen <- function(data_pollen, ech) {
   grille <- merge(ech, data.frame(Pred_Genus = taxons, stringsAsFactors = FALSE))
 
   completer_zeros(grille, ab_counts,
-                  by = c("location", "period", "year", "Pred_Genus"),
+                  by = c("location", "period", "Pred_Genus"),
                   colonne_valeur = "count")
 }
 
 # Total pollen load per sample (all taxa, OTHER included).
 abondance_totale <- function(ab_taxon) {
-  aggregate(count ~ location + period + year, data = ab_taxon, FUN = sum)
+  aggregate(count ~ location + period, data = ab_taxon, FUN = sum)
 }

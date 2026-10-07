@@ -4,8 +4,8 @@
 library(sf)
 
 # Station metadata (trap, address, borough, lon/lat).
-charger_stations <- function(fichier = "./Data/locations_traps.csv") {
-  read.csv(fichier, sep = ";", header = TRUE)
+charger_stations <- function(fichier = "./Data/Data_Maya/locations_traps_maya.csv") {
+  read.csv(fichier, sep = ",", header = TRUE)
 }
 
 # Projects a lon/lat data.frame to MTM (metres), as an sf object.
@@ -23,7 +23,7 @@ distances_stations <- function(locs_sf, stations, id_col = "trap") {
 }
 
 # Socio-environmental gradients per station (NDVI, canopy cover, population density)
-charger_gradients <- function(fichier = "./Data/Gradients_plots.csv") {
+charger_gradients <- function(fichier = "./Data/Data_Maya/Data_arbres/canopee_61.csv") {
   gradients <- read.csv(fichier, header = TRUE)
   names(gradients)[1] <- "Plot"
   gradients$Plot <- as.character(gradients$Plot)

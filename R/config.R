@@ -10,9 +10,9 @@ CRS_WGS84 <- 4326   # lat/lon, as stored in locations_traps.csv
 CRS_MTM   <- 32188  # MTM zone 8, in metres, for real-world distances
 
 ## Paths
-DIR_DATA_POLLEN <- "./Data/Data_pollen"
-DIR_OUT_ARTICLE <- "./Outputs/article"
-DIR_FIG_ARTICLE <- "./Outputs/article/figures"
+DIR_DATA_POLLEN <- "./Data/Data_Maya"
+DIR_OUT_ARTICLE <- "./Outputs/article_Maya"
+DIR_FIG_ARTICLE <- "./Outputs/article_Maya/figures"
 
 ## Taxon subset (palettes, figures)
 N_TOP_TAXONS <- 10 # see top_taxons() in R/matrices.R
@@ -28,8 +28,6 @@ COULEUR_AUTRES <- "grey80"   # colour of the "Others" group
 CANOPY_BREAKS <- c(-Inf, 10, 20, 30, Inf)
 CANOPY_LABELS <- c("less than 10", "from 10 to 19.9", "from 20 to 29.9", "30 and more")
 COULEURS_CANOPY <- setNames(c("white", "#a1d99b", "#41ab5d", "#00441b"), CANOPY_LABELS)
-
-COULEURS_ANNEES <- c("2022" = "#4e79a7", "2023" = "#e15759")
 
 ## Graphical constants for ordination plots
 FLECHE_SCALE <- 0.65   # envfit arrow length, as a fraction of the half-range
